@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Initial">
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ More changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +78,7 @@
       <option name="presentableId" value="Default" />
       <updated>1678497733584</updated>
       <workItem from="1678497734683" duration="584000" />
-      <workItem from="1678498480480" duration="37204000" />
+      <workItem from="1678498480480" duration="37432000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -89,7 +87,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678587480377</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="+ More changes">
+      <created>1678592205717</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1678592205717</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -97,6 +102,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial" />
-    <option name="LAST_COMMIT_MESSAGE" value="Initial" />
+    <MESSAGE value="+ More changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="+ More changes" />
   </component>
 </project>
