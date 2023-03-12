@@ -52,8 +52,8 @@ public class API {
             // Check if value exists
             optVal = opt.getValue();
         }
-        Button confirmBtn = Button.secondary("confirm-" + optVal, getConfigValue("Bot.Buttons.Confirm_Button"));
-        Button denyBtn = Button.secondary("deny-" + optVal, getConfigValue("Bot.Buttons.Deny_Button"));
+        Button confirmBtn = Button.secondary("confirm|" + optVal, getConfigValue("Bot.Buttons.Confirm_Button"));
+        Button denyBtn = Button.secondary("deny|" + optVal, getConfigValue("Bot.Buttons.Deny_Button"));
         evt.replyEmbeds(eb.build()).addActionRow(confirmBtn, denyBtn).setEphemeral(true).queue();
     }
     public MessageEmbed createTicketOpenConfirmationMessage() {

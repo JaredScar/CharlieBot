@@ -4,34 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BanCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BarkCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BlacklistCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/GambleCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/KickCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/LockdownCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/MuteCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/StickyCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/TicketCommand.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/general/GeneralCommandEventListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/PointsMessage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/RankMessage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/SupportMessage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/logger/Logger.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/MuteManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/config.yml" afterDir="false" />
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Initial">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,11 +80,23 @@
       <option name="presentableId" value="Default" />
       <updated>1678497733584</updated>
       <workItem from="1678497734683" duration="584000" />
-      <workItem from="1678498480480" duration="33145000" />
+      <workItem from="1678498480480" duration="37204000" />
     </task>
+    <task id="LOCAL-00001" summary="Initial">
+      <created>1678587480377</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1678587480377</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initial" />
   </component>
 </project>

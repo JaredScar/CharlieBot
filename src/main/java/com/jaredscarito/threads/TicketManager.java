@@ -14,7 +14,11 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -70,6 +74,7 @@ public class TicketManager extends ListenerAdapter {
             String desc = getConfigValue("Bot.Tickets.Create_Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
             API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
         }
+        evt.editSelectMenu(evt.getSelectMenu().createCopy().build()).queue();
     }
 
     @Override
@@ -77,6 +82,16 @@ public class TicketManager extends ListenerAdapter {
         Member mem = evt.getMember();
         if (mem == null) return;
         if (mem.getUser().isBot()) return;
-        Button button = evt.getButton();
+        String buttonId = evt.getButton().getId();
+        String[] params = buttonId.split("\\|");
+        System.out.println("Button ID: " + buttonId);
+        switch (params[0].toLowerCase()) {
+            case "confirm":
+                break;
+            case "deny":
+                String category = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Label");
+                evt.editMessage("You have cancelled your ticket creation for category: " + category).setReplace(true).queue();
+                break;
+        }
     }
 }
