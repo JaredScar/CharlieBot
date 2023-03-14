@@ -2,6 +2,8 @@ package com.jaredscarito.main;
 
 import com.jaredscarito.listeners.commands.general.GeneralCommandEventListener;
 import com.jaredscarito.listeners.messaging.general.GeneralMessageEventListener;
+import com.jaredscarito.logger.Logger;
+import com.jaredscarito.sql.SQLHelper;
 import com.jaredscarito.threads.MuteManager;
 import com.jaredscarito.threads.TicketManager;
 import com.timvisee.yamlwrapper.YamlConfiguration;
@@ -11,6 +13,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import java.io.File;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.List;
 
 public class Main {
@@ -31,6 +34,21 @@ public class Main {
                 f = new File(url.getFile());
         }
         return YamlConfiguration.loadFromFile(f);
+    }
+    public SQLHelper getSqlHelper() {
+        String host = getConfig().getString("Database.Host");
+        int port = getConfig().getInt("Database.Port");
+        String username = getConfig().getString("Database.Username");
+        String password = getConfig().getString("Database.Password");
+        String db = getConfig().getString("Database.DB");
+        SQLHelper helper = null;
+        try {
+            helper = new SQLHelper(host, port, db, username, password);
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return helper;
     }
     public static void main(String[] args) throws InterruptedException {
         String token = main.getConfig().getString("Bot.Token");

@@ -4,9 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ More changes">
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ Add to README">
+      <change afterPath="$PROJECT_DIR$/.idea/sqldialects.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/SelfPromotionMessage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/sql/SQLHelper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/PointsMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/PointsMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/RankMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/RankMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/general/GeneralMessageEventListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/threads/TicketManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,6 +66,11 @@
     &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.52528733&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mysql&quot;
+    ]
   }
 }</component>
   <component name="RunManager">
@@ -78,7 +91,8 @@
       <option name="presentableId" value="Default" />
       <updated>1678497733584</updated>
       <workItem from="1678497734683" duration="584000" />
-      <workItem from="1678498480480" duration="37432000" />
+      <workItem from="1678498480480" duration="42344000" />
+      <workItem from="1678759364728" duration="2050000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -94,7 +108,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678592205717</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="+ Add to README">
+      <created>1678592286129</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1678592286129</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -103,6 +124,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial" />
     <MESSAGE value="+ More changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="+ More changes" />
+    <MESSAGE value="+ Add to README" />
+    <option name="LAST_COMMIT_MESSAGE" value="+ Add to README" />
   </component>
 </project>

@@ -1,12 +1,14 @@
 package com.jaredscarito.threads;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
@@ -18,8 +20,15 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.stream.Stream;
 
 public class TicketManager extends ListenerAdapter {
@@ -77,6 +86,16 @@ public class TicketManager extends ListenerAdapter {
         evt.editSelectMenu(evt.getSelectMenu().createCopy().build()).queue();
     }
 
+    private String getCurrentDatetimeString() {
+        Date date = new Date();
+
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+
+        formatter.setTimeZone(TimeZone.getTimeZone("EST"));
+
+        return (formatter.format(date));
+    }
+
     @Override
     public void onButtonInteraction(ButtonInteractionEvent evt) {
         Member mem = evt.getMember();
@@ -84,14 +103,54 @@ public class TicketManager extends ListenerAdapter {
         if (mem.getUser().isBot()) return;
         String buttonId = evt.getButton().getId();
         String[] params = buttonId.split("\\|");
+        String discCategory = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Category");
         System.out.println("Button ID: " + buttonId);
+        String categoryLabel = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Label");
+        String categoryIcon = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Icon");
+        String startMessage = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Start_Message");
         switch (params[0].toLowerCase()) {
             case "confirm":
+                Guild guild = evt.getJDA().getGuildById(getConfigValue("Bot.Guild"));
+                if (guild != null) {
+                    Category category = guild.getCategoryById(discCategory);
+                    if (category != null) {
+                        try {
+                            PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
+                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `creation_date`, `closed`) VALUES (?, ?, ?)",
+                                            new String[] {"ticket_id"});
+                            prep.setLong(1, mem.getIdLong());
+                            prep.setString(2, getCurrentDatetimeString());
+                            prep.setInt(3, 0);
+                            if (prep.execute()) {
+                                ResultSet rs = prep.getGeneratedKeys();
+                                if (rs.next()) {
+                                    int ticketId = rs.getInt(1);
+                                    category.createTextChannel(categoryIcon + "--" + evt.getMember().getUser().getName()
+                                            + "--" + ticketId).queue((textChan) -> {
+                                        evt.editMessage("Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setReplace(true).queue();
+                                        // TODO Need to send a message here that they can use to close and lock ticket
+                                        if (startMessage.length() > 0)
+                                            textChan.sendMessage(startMessage).queue();
+                                    });
+                                }
+                            }
+                        } catch (SQLException ex) {
+                            Logger.log(ex);
+                            ex.printStackTrace();
+                        }
+                    }
+                }
                 break;
             case "deny":
-                String category = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Label");
-                evt.editMessage("You have cancelled your ticket creation for category: " + category).setReplace(true).queue();
+                evt.editMessage("You have cancelled your ticket creation for category: " + categoryLabel).setReplace(true).queue();
                 break;
         }
+    }
+
+    public boolean isValidTicket(TextChannel textChannel) {
+        return false;
+    }
+    public boolean saveAndCloseTicket(TextChannel textChannel) {
+        return false;
     }
 }
