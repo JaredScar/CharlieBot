@@ -116,7 +116,7 @@ public class TicketManager extends ListenerAdapter {
                     if (category != null) {
                         try {
                             PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
-                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `creation_date`, `closed`) VALUES (?, ?, ?)",
+                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `creation_date`, `locked`) VALUES (?, ?, ?)",
                                             new String[] {"ticket_id"});
                             prep.setLong(1, mem.getIdLong());
                             prep.setString(2, getCurrentDatetimeString());
