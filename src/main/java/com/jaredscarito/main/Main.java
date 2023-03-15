@@ -4,14 +4,15 @@ import com.jaredscarito.listeners.commands.general.GeneralCommandEventListener;
 import com.jaredscarito.listeners.messaging.general.GeneralMessageEventListener;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.sql.SQLHelper;
-import com.jaredscarito.threads.MuteManager;
-import com.jaredscarito.threads.TicketManager;
+import com.jaredscarito.managers.MuteManager;
+import com.jaredscarito.managers.TicketManager;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
@@ -25,15 +26,21 @@ public class Main {
     public JDA getJDA() {
         return JDA_INSTANCE;
     }
+
+    private final YamlConfiguration config = YamlConfiguration.loadFromFile(new File("config/config.yml"));
     public YamlConfiguration getConfig() {
-        File f = new File("config.yml");
-        if (!f.exists()) {
-            ClassLoader classLoader = getClass().getClassLoader();
-            URL url = classLoader.getResource("config.yml");
-            if (url != null)
-                f = new File(url.getFile());
+        return this.config;
+    }
+    public boolean saveConfig() {
+        File f = new File("config/config.yml");
+        try {
+            this.config.save(f);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Logger.log(ex);
+            return false;
         }
-        return YamlConfiguration.loadFromFile(f);
+        return true;
     }
     public SQLHelper getSqlHelper() {
         String host = getConfig().getString("Database.Host");

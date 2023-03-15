@@ -1,41 +1,28 @@
-package com.jaredscarito.threads;
+package com.jaredscarito.managers;
 
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
-import net.dv8tion.jda.api.utils.messages.MessageCreateData;
-import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.stream.Stream;
 
 public class TicketManager extends ListenerAdapter {
-    private long TICKET_CHANNEL_ID = -1;
-    private long TICKET_CATEGORY_ID = -1;
-
-    private long TICKET_CREATION_MESSAGE_ID = -1;
 
     public TicketManager() {
         JDA jda = Main.getInstance().getJDA();
@@ -44,25 +31,16 @@ public class TicketManager extends ListenerAdapter {
             if (guild == null) return;
             TextChannel chan = guild.getChannelById(TextChannel.class, getConfigValue("Bot.Tickets.Channel"));
             if (chan == null) return;
-            MessageHistory history = chan.getHistory();
-            List<Message> msgs = history.getRetrievedHistory();
-            Stream<Message> myMessages = msgs.stream().filter((msg) -> {
-                if (msg.getMember() == null) return false;
-                if (msg.getId().equals(getConfigValue("Bot.Tickets.MessageID"))) return false;
-                return msg.getMember().getIdLong() == jda.getSelfUser().getIdLong();
-            });
-            for (Message msg : myMessages.toList()) {
-                msg.delete().queue();
-            }
-            Message msg = null;
             String msgID = getConfigValue("Bot.Tickets.MessageID");
-            if (!msgID.isEmpty())
-                msg = history.getMessageById(msgID);
-            if (msg != null) {
+            if (!msgID.isEmpty()) {
                 // We need to delete it and set up the new one
-                msg.delete().queue();
+                chan.purgeMessagesById(msgID);
             }
-            API.getInstance().createMainTicketMessage(chan).queue((msgRes) -> {});
+            API.getInstance().createMainTicketMessage(chan).queue((msgRes) -> {
+                YamlConfiguration config = Main.getInstance().getConfig();
+                config.set("Bot.Tickets.MessageID", msgRes.getId());
+                Main.getInstance().saveConfig();
+            });
         } catch (NullPointerException ex) {
             ex.printStackTrace();
         }
@@ -70,6 +48,19 @@ public class TicketManager extends ListenerAdapter {
 
     public String getConfigValue(String path) {
         return Main.getInstance().getConfig().getString(path);
+    }
+
+    public boolean canOpenTicketType(Member mem, List<String> roles_required) {
+        List<Role> memRoles = mem.getRoles();
+        for (Role r : memRoles) {
+            if (roles_required.contains(r.getId()))
+                return true;
+        }
+        return false;
+    }
+
+    public boolean canManageTicket(TextChannel ticketChan, Member mem) {
+        return false;
     }
 
     @Override
@@ -81,7 +72,12 @@ public class TicketManager extends ListenerAdapter {
             String optVal = opt.getValue();
             String title = getConfigValue("Bot.Tickets.Create_Ticket_Options." + optVal + ".Open_Ticket_Confirm_Title");
             String desc = getConfigValue("Bot.Tickets.Create_Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
-            API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
+            List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Create_Ticket_Options." + optVal + ".Roles_Required");
+            if (canOpenTicketType(evt.getMember(), roles_required)) {
+                API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
+            } else {
+                // TODO Error message, they do not have permissions to open this ticket type
+            }
         }
         evt.editSelectMenu(evt.getSelectMenu().createCopy().build()).queue();
     }
@@ -89,7 +85,7 @@ public class TicketManager extends ListenerAdapter {
     private String getCurrentDatetimeString() {
         Date date = new Date();
 
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         formatter.setTimeZone(TimeZone.getTimeZone("EST"));
 
@@ -103,8 +99,18 @@ public class TicketManager extends ListenerAdapter {
         if (mem.getUser().isBot()) return;
         String buttonId = evt.getButton().getId();
         String[] params = buttonId.split("\\|");
+        if (params.length < 2) {
+            switch (params[0]) {
+                case "closeTicketAndSave":
+                    break;
+                case "lockTicket":
+                    break;
+                case "unlockTicket":
+                    break;
+            }
+            return; // Not enough arguments for a create_ticket option response
+        }
         String discCategory = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Category");
-        System.out.println("Button ID: " + buttonId);
         String categoryLabel = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Label");
         String categoryIcon = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Icon");
         String startMessage = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Start_Message");
@@ -121,18 +127,29 @@ public class TicketManager extends ListenerAdapter {
                             prep.setLong(1, mem.getIdLong());
                             prep.setString(2, getCurrentDatetimeString());
                             prep.setInt(3, 0);
-                            if (prep.execute()) {
-                                ResultSet rs = prep.getGeneratedKeys();
-                                if (rs.next()) {
-                                    int ticketId = rs.getInt(1);
-                                    category.createTextChannel(categoryIcon + "--" + evt.getMember().getUser().getName()
-                                            + "--" + ticketId).queue((textChan) -> {
-                                        evt.editMessage("Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setReplace(true).queue();
-                                        // TODO Need to send a message here that they can use to close and lock ticket
-                                        if (startMessage.length() > 0)
-                                            textChan.sendMessage(startMessage).queue();
+                            prep.execute();
+                            ResultSet rs = prep.getGeneratedKeys();
+                            if (rs.next()) {
+                                int ticketId = rs.getInt(1);
+                                category.createTextChannel(categoryIcon + "--" + evt.getMember().getUser().getName()
+                                        + "--" + ticketId).queue((textChan) -> {
+                                    evt.editMessage("Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setReplace(true).queue();
+                                    API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
+                                        try {
+                                            PreparedStatement prepared = Main.getInstance().getSqlHelper().getConn()
+                                                    .prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?");
+                                            prepared.setLong(1, msg.getIdLong());
+                                            prepared.setLong(2, textChan.getIdLong());
+                                            prepared.setInt(3, ticketId);
+                                            prepared.execute();
+                                        } catch (SQLException ex) {
+                                            Logger.log(ex);
+                                            ex.printStackTrace();
+                                        }
                                     });
-                                }
+                                    if (startMessage.length() > 0)
+                                        textChan.sendMessage(startMessage).queue();
+                                });
                             }
                         } catch (SQLException ex) {
                             Logger.log(ex);
