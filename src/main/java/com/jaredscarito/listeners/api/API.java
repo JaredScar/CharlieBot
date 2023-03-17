@@ -29,6 +29,14 @@ public class API {
         return Main.getInstance().getConfig().getString(path);
     }
 
+    public void sendErrorMessage(StringSelectInteractionEvent evt, Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        evt.replyEmbeds(eb.build()).setEphemeral(true).queue();
+    }
+
     public MessageCreateAction createMainTicketMessage(TextChannel chan) {
         EmbedBuilder eb = new EmbedBuilder();
         StringSelectMenu.Builder selectMenuBuilder = StringSelectMenu.create("ticket");

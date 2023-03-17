@@ -3,6 +3,7 @@ package com.jaredscarito.managers;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.mysql.cj.log.Log;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
@@ -76,7 +77,7 @@ public class TicketManager extends ListenerAdapter {
             if (canOpenTicketType(evt.getMember(), roles_required)) {
                 API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
             } else {
-                // TODO Error message, they do not have permissions to open this ticket type
+                API.getInstance().sendErrorMessage(evt, evt.getMember(), "Error: Permission denied.", "You do not have permissions to open a ticket of this type...");
             }
         }
         evt.editSelectMenu(evt.getSelectMenu().createCopy().build()).queue();
@@ -100,6 +101,7 @@ public class TicketManager extends ListenerAdapter {
         String buttonId = evt.getButton().getId();
         String[] params = buttonId.split("\\|");
         if (params.length < 2) {
+            // TODO Handle the lock/unlock/close button interactions for TicketManager
             switch (params[0]) {
                 case "closeTicketAndSave":
                     break;
@@ -165,6 +167,45 @@ public class TicketManager extends ListenerAdapter {
     }
 
     public boolean isValidTicket(TextChannel textChannel) {
+        try {
+            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT COUNT(*) as count FROM `tickets` WHERE `channel_id` = ?");
+            stmt.setLong(1, textChannel.getIdLong());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                if (rs.getInt("count") > 0) return true;
+            }
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return false;
+    }
+    public boolean lockTicket(TextChannel chan, Member locker) {
+        try {
+            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("UPDATE `tickets` SET `locked` = 1 WHERE `channel_id` = ?");
+            stmt.setLong(1, chan.getIdLong());
+            if (stmt.execute()) {
+                // It executed, we want to lock the ticket now
+                // TODO
+            }
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return false;
+    }
+    public boolean unlockTicket(TextChannel chan, Member unlocker) {
+        try {
+            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("UPDATE `tickets` SET `locked` = 0 WHERE `channel_id` = ?");
+            stmt.setLong(1, chan.getIdLong());
+            if (stmt.execute()) {
+                // It executed, we want to unlock the ticket now
+                // TODO
+            }
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
         return false;
     }
     public boolean saveAndCloseTicket(TextChannel textChannel) {
