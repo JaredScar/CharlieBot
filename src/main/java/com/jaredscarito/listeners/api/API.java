@@ -1,5 +1,6 @@
 package com.jaredscarito.listeners.api;
 
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -16,7 +17,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 public class API {
@@ -41,10 +44,10 @@ public class API {
         EmbedBuilder eb = new EmbedBuilder();
         StringSelectMenu.Builder selectMenuBuilder = StringSelectMenu.create("ticket");
         selectMenuBuilder.setPlaceholder(getConfigValue("Bot.Tickets.Title"));
-        List<String> options = Main.getInstance().getConfig().getKeys("Bot.Tickets.Create_Ticket_Options");
+        List<String> options = Main.getInstance().getConfig().getKeys("Bot.Tickets.Ticket_Options");
         for (String opt : options) {
-            String optLabel = getConfigValue("Bot.Tickets.Create_Ticket_Options." + opt + ".Label");
-            boolean optEnabled = Main.getInstance().getConfig().getBoolean("Bot.Tickets.Create_Ticket_Options." + opt + ".Enabled");
+            String optLabel = getConfigValue("Bot.Tickets.Ticket_Options." + opt + ".Label");
+            boolean optEnabled = Main.getInstance().getConfig().getBoolean("Bot.Tickets.Ticket_Options." + opt + ".Enabled");
             if (optEnabled)
                 selectMenuBuilder.addOption(optLabel, opt);
         }
@@ -159,6 +162,21 @@ public class API {
                     String author = msg.getAuthor().getAsTag();
                     String message = msg.getContentDisplay();
                     String authorImg = msg.getAuthor().getAvatarUrl();
+                    List<Message.Attachment> attachments = msg.getAttachments();
+                    List<File> files = new ArrayList<>();
+                    for (Message.Attachment attach : attachments) {
+                        CompletableFuture<File> file = attach.downloadToFile();
+                        file.exceptionally((exception) -> {
+                            exception.printStackTrace();
+                            return null;
+                        });
+                        File attachment = new File("ticket_log/attachments/" + chan.getId() + "-" + attach.getFileName()
+                                + "." + attach.getFileExtension());
+                        file.complete(attachment);
+                        if (attachment.exists())
+                            files.add(attachment);
+                    }
+                    // TODO Add files to message block
                     String messageBlock = "<div class=\"message-block\">\n" +
                             "        <div class=\"row\">\n" +
                             "            <div class=\"col-auto\">\n" +

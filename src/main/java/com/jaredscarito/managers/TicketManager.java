@@ -6,12 +6,14 @@ import com.jaredscarito.main.Main;
 import com.mysql.cj.log.Log;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 
 import java.sql.PreparedStatement;
@@ -19,9 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 
 public class TicketManager extends ListenerAdapter {
 
@@ -60,7 +60,28 @@ public class TicketManager extends ListenerAdapter {
         return false;
     }
 
-    public boolean canManageTicket(TextChannel ticketChan, Member mem) {
+    public String getTicketTypeById(long id) {
+        try {
+            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `ticket_type` FROM `tickets` WHERE `channel_id` = ?");
+            stmt.setLong(1, id);
+            stmt.execute();
+            ResultSet rs = stmt.getResultSet();
+            if (rs.next())
+                return rs.getString("ticket_type");
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean canManageTicket(Member mem, String ticket_type) {
+        List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + ticket_type + ".Roles_Required");
+        List<Role> memRoles = mem.getRoles();
+        for (Role r : memRoles) {
+            if (roles_required.contains(r.getId()))
+                return true;
+        }
         return false;
     }
 
@@ -71,9 +92,9 @@ public class TicketManager extends ListenerAdapter {
         for (SelectOption opt : selectedOpts) {
             // Check if value exists
             String optVal = opt.getValue();
-            String title = getConfigValue("Bot.Tickets.Create_Ticket_Options." + optVal + ".Open_Ticket_Confirm_Title");
-            String desc = getConfigValue("Bot.Tickets.Create_Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
-            List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Create_Ticket_Options." + optVal + ".Roles_Required");
+            String title = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Title");
+            String desc = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
+            List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + optVal + ".Roles_Required");
             if (canOpenTicketType(evt.getMember(), roles_required)) {
                 API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
             } else {
@@ -101,21 +122,23 @@ public class TicketManager extends ListenerAdapter {
         String buttonId = evt.getButton().getId();
         String[] params = buttonId.split("\\|");
         if (params.length < 2) {
-            // TODO Handle the lock/unlock/close button interactions for TicketManager
             switch (params[0]) {
                 case "closeTicketAndSave":
+                    boolean ticketWasClosed = this.saveAndCloseTicket(evt.getChannel().asTextChannel(), evt.getMember());
                     break;
                 case "lockTicket":
+                    boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
                     break;
                 case "unlockTicket":
+                    boolean ticketWasUnlocked = this.unlockTicket(evt.getChannel().asTextChannel(), evt.getMember());
                     break;
             }
             return; // Not enough arguments for a create_ticket option response
         }
-        String discCategory = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Category");
-        String categoryLabel = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Label");
-        String categoryIcon = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Icon");
-        String startMessage = getConfigValue("Bot.Tickets.Create_Ticket_Options." + params[1] + ".Start_Message");
+        String discCategory = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Category");
+        String categoryLabel = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Label");
+        String categoryIcon = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Icon");
+        String startMessage = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Start_Message");
         switch (params[0].toLowerCase()) {
             case "confirm":
                 Guild guild = evt.getJDA().getGuildById(getConfigValue("Bot.Guild"));
@@ -124,11 +147,12 @@ public class TicketManager extends ListenerAdapter {
                     if (category != null) {
                         try {
                             PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
-                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `creation_date`, `locked`) VALUES (?, ?, ?)",
+                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
                                             new String[] {"ticket_id"});
                             prep.setLong(1, mem.getIdLong());
-                            prep.setString(2, getCurrentDatetimeString());
-                            prep.setInt(3, 0);
+                            prep.setString(2, params[1]);
+                            prep.setString(3, getCurrentDatetimeString());
+                            prep.setInt(4, 0);
                             prep.execute();
                             ResultSet rs = prep.getGeneratedKeys();
                             if (rs.next()) {
@@ -186,7 +210,32 @@ public class TicketManager extends ListenerAdapter {
             stmt.setLong(1, chan.getIdLong());
             if (stmt.execute()) {
                 // It executed, we want to lock the ticket now
-                // TODO
+                List<Member> chanMembers = chan.getMembers();
+                List<Permission> allows = new ArrayList<>();
+                List<Permission> denies = new ArrayList<>();
+                denies.add(Permission.MESSAGE_SEND);
+                denies.add(Permission.MESSAGE_SEND_IN_THREADS);
+                denies.add(Permission.MESSAGE_ADD_REACTION);
+                for (Member mem : chanMembers) {
+                    chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
+                }
+                stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?");
+                stmt.setLong(1, chan.getIdLong());
+                stmt.execute();
+                ResultSet rs = stmt.getResultSet();
+                long messageId = rs.getLong("message_id");
+                chan.getHistoryFromBeginning(1).queue((hist) -> {
+                    Message msg = hist.getMessageById(messageId);
+                    Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
+                    Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button")).asDisabled();
+                    Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button"));
+                    if (msg != null) {
+                        // It's not null, we need to edit it
+                        msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
+                        chan.sendMessage("The ticket has been \uD83D\uDD34 locked by " + locker.getAsMention()).queue();
+                    }
+                });
+                return true;
             }
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -199,8 +248,33 @@ public class TicketManager extends ListenerAdapter {
             PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("UPDATE `tickets` SET `locked` = 0 WHERE `channel_id` = ?");
             stmt.setLong(1, chan.getIdLong());
             if (stmt.execute()) {
-                // It executed, we want to unlock the ticket now
-                // TODO
+                // It executed and updates 1 row, we want to unlock the ticket now
+                List<Member> chanMembers = chan.getMembers();
+                List<Permission> allows = new ArrayList<>();
+                List<Permission> denies = new ArrayList<>();
+                allows.add(Permission.MESSAGE_SEND);
+                allows.add(Permission.MESSAGE_SEND_IN_THREADS);
+                allows.add(Permission.MESSAGE_ADD_REACTION);
+                for (Member mem : chanMembers) {
+                    chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
+                }
+                stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?");
+                stmt.setLong(1, chan.getIdLong());
+                stmt.execute();
+                ResultSet rs = stmt.getResultSet();
+                long messageId = rs.getLong("message_id");
+                chan.getHistoryFromBeginning(1).queue((hist) -> {
+                    Message msg = hist.getMessageById(messageId);
+                    Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
+                    Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button"));
+                    Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button")).asDisabled();
+                    if (msg != null) {
+                        // It's not null, we need to edit it
+                        msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
+                        chan.sendMessage("The ticket has been \uD83D\uDFE2 unlocked by " + unlocker.getAsMention()).queue();
+                    }
+                });
+                return true;
             }
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -208,7 +282,33 @@ public class TicketManager extends ListenerAdapter {
         }
         return false;
     }
-    public boolean saveAndCloseTicket(TextChannel textChannel) {
+    public boolean addMember(TextChannel chan, long uid) {
+        Member mem = chan.getGuild().getMemberById(uid);
+        if (mem == null) return false;
+        List<Permission> allows = new ArrayList<>();
+        List<Permission> denies = new ArrayList<>();
+        allows.add(Permission.MESSAGE_SEND);
+        allows.add(Permission.MESSAGE_SEND_IN_THREADS);
+        allows.add(Permission.MESSAGE_ADD_REACTION);
+        allows.add(Permission.MESSAGE_HISTORY);
+        allows.add(Permission.VIEW_CHANNEL);
+        chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
+        return true;
+    }
+    public boolean removeMember(TextChannel chan, long uid) {
+        Member mem = chan.getGuild().getMemberById(uid);
+        if (mem == null) return false;
+        List<Permission> allows = new ArrayList<>();
+        List<Permission> denies = new ArrayList<>();
+        denies.add(Permission.MESSAGE_SEND);
+        denies.add(Permission.MESSAGE_SEND_IN_THREADS);
+        denies.add(Permission.MESSAGE_ADD_REACTION);
+        denies.add(Permission.MESSAGE_HISTORY);
+        denies.add(Permission.VIEW_CHANNEL);
+        chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
+        return true;
+    }
+    public boolean saveAndCloseTicket(TextChannel textChannel, Member closer) {
         return false;
     }
 }

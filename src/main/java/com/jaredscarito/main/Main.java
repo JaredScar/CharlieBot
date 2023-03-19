@@ -12,14 +12,13 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
 
 public class Main {
     private static JDA JDA_INSTANCE = null;
-    public static Main main = new Main();
+    private static final Main main = new Main();
+    private static TicketManager ticketManager = null;
     public static Main getInstance() {
         return main;
     }
@@ -41,6 +40,9 @@ public class Main {
             return false;
         }
         return true;
+    }
+    public TicketManager getTicketManager() {
+        return ticketManager;
     }
     public SQLHelper getSqlHelper() {
         String host = getConfig().getString("Database.Host");
@@ -73,11 +75,12 @@ public class Main {
                 jdaInstance.upsertCommand(commandLabel, desc).queue();
         }
         JDA_INSTANCE = jdaInstance;
+        ticketManager = new TicketManager();
         jdaInstance.addEventListener(
                 new GeneralCommandEventListener(),
                 new GeneralMessageEventListener(),
                 new MuteManager(),
-                new TicketManager()
+                ticketManager
         );
     }
 }
