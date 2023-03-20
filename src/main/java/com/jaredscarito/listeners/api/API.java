@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
@@ -23,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 public class API {
-    public static API api = new API();
+    private static final API api = new API();
     public static API getInstance() {
         return api;
     }
@@ -38,6 +39,21 @@ public class API {
         eb.setDescription(desc);
         eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
         evt.replyEmbeds(eb.build()).setEphemeral(true).queue();
+    }
+    public void sendErrorMessage(SlashCommandInteractionEvent evt, Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        evt.replyEmbeds(eb.build()).setEphemeral(true).queue();
+    }
+
+    public MessageEmbed getEmbedMessage(Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        return eb.build();
     }
 
     public MessageCreateAction createMainTicketMessage(TextChannel chan) {

@@ -1,5 +1,6 @@
 package com.jaredscarito.listeners.commands;
 
+import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.managers.TicketManager;
 import net.dv8tion.jda.api.entities.Member;
@@ -25,38 +26,47 @@ public class TicketCommand {
                 case "add":
                     if (tm.canManageTicket(mem, ticket_type)) {
                         boolean added = false;
+                        long uid = -1;
                         if (user != null) {
-                            long uid = user.getAsUser().getIdLong();
+                            uid = user.getAsUser().getIdLong();
                             added = tm.addMember(chan, uid);
                         }
                         if (userId != null) {
-                            long uid = userId.getAsLong();
+                            uid = userId.getAsLong();
                             added = tm.addMember(chan, uid);
                         }
-                        if (added) {
-                            // TODO Member was added, send message
+                        if (added && uid != -1) {
+                            if (evt.getGuild() == null) return;
+                            Member memberById = evt.getGuild().getMemberById(uid);
+                            if (memberById == null) return;
+                            chan.sendMessage("Success: User " + memberById.getEffectiveName() + " has been added to the ticket...").queue();
                         } else {
-                            // TODO Member was not added, failure...
+                            API.getInstance().sendErrorMessage(evt, mem, "Error: Something went wrong...", "Something went wrong when this user was being added to the ticket...");
                         }
                     } else {
-                        // TODO No permission to manage ticket
+                        API.getInstance().sendErrorMessage(evt, mem, "Error: Permission denied.", "You lack permissions to manage this ticket...");
                     }
                     break;
                 case "remove":
                     if (tm.canManageTicket(mem, ticket_type)) {
                         boolean removed = false;
+                        long uid = -1;
                         if (user != null) {
-                            long uid = user.getAsUser().getIdLong();
+                            uid = user.getAsUser().getIdLong();
                             removed = tm.removeMember(chan, uid);
                         }
                         if (userId != null) {
-                            long uid = userId.getAsLong();
+                            uid = userId.getAsLong();
                             removed = tm.removeMember(chan, uid);
                         }
-                        if (removed) {
-                            // TODO Member was removed, send message
+                        if (removed && uid != -1) {
+                            // Member was removed, send message
+                            if (evt.getGuild() == null) return;
+                            Member memberById = evt.getGuild().getMemberById(uid);
+                            if (memberById == null) return;
+                            chan.sendMessage("Success: User " + memberById.getEffectiveName() + " has been removed from the ticket...").queue();
                         } else {
-                            // TODO Member was not removed, failure...
+                            API.getInstance().sendErrorMessage(evt, mem, "Error: Something went wrong...", "Something went wrong when this user was being removed from the ticket...");
                         }
                     }
                     break;
@@ -76,7 +86,7 @@ public class TicketCommand {
             }
         } else {
             // Not a valid ticket, let them know these commands can only be ran inside ticket channels...
-            // TODO
+            API.getInstance().sendErrorMessage(evt, mem, "Error: This is not a valid ticket.", "These commands can only be ran inside of a valid ticket...");
         }
     }
 }

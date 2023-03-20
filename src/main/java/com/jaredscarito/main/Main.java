@@ -10,6 +10,8 @@ import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -63,8 +65,9 @@ public class Main {
         String token = main.getConfig().getString("Bot.Token");
         JDA jdaInstance = JDABuilder.createDefault(token).enableIntents(
                 GatewayIntent.MESSAGE_CONTENT,
-                GatewayIntent.GUILD_MESSAGES
-        ).build();
+                GatewayIntent.GUILD_MESSAGES,
+                GatewayIntent.GUILD_MEMBERS
+        ).setMemberCachePolicy(MemberCachePolicy.ALL).setChunkingFilter(ChunkingFilter.ALL).build();
         jdaInstance.awaitReady();
         List<String> commands = getInstance().getConfig().getConfigurationSection("Bot.Commands").getKeys();
         for (String command : commands) {
