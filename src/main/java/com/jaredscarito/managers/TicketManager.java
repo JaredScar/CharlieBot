@@ -10,14 +10,20 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.managers.channel.ChannelManager;
 import net.dv8tion.jda.api.managers.channel.attribute.IPermissionContainerManager;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,6 +31,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class TicketManager extends ListenerAdapter {
 
@@ -126,11 +133,20 @@ public class TicketManager extends ListenerAdapter {
         String[] params = buttonId.split("\\|");
         if (params.length < 2) {
             switch (params[0]) {
-                case "closeTicketAndSave" -> {
-                    boolean ticketWasClosed = this.saveAndCloseTicket(evt.getChannel().asTextChannel(), evt.getMember());
+                case "closeAndSaveTicket" -> {
+                    // Bring up modal to get reason
+                    TextInput inp = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
+                            .setPlaceholder("Reason for closure")
+                            .setMinLength(0)
+                            .setMaxLength(1024)
+                            .build();
+                    Modal modal = Modal.create("closeTicketAndSaveModal"
+                                    + "|" + evt.getChannel().getId(), "Close Ticket")
+                            .addComponents(ActionRow.of(inp))
+                            .build();
+                    evt.replyModal(modal).queue();
                 }
                 case "lockTicket" -> {
-                    System.out.println("Trying to lock ticket...");
                     boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
                 }
                 case "unlockTicket" -> {
@@ -195,6 +211,31 @@ public class TicketManager extends ListenerAdapter {
             case "deny":
                 evt.editMessage("You have cancelled your ticket creation for category: " + categoryLabel).setReplace(true).queue();
                 break;
+        }
+    }
+
+    @Override
+    public void onModalInteraction(@NotNull ModalInteractionEvent evt) {
+        String modalId = evt.getModalId();
+        String[] params = modalId.split("\\|");
+        if (params.length > 1) {
+            if (params[0].equals("closeTicketAndSaveModal")) {
+                String channelId = params[1];
+                String reason = Objects.requireNonNull(evt.getValue("reason")).getAsString();
+                if (evt.getGuild() != null) {
+                    TextChannel channel = evt.getGuild().getTextChannelById(channelId);
+                    if (channel != null) {
+                        this.saveAndCloseTicket(channel, evt.getMember(), reason);
+                        // it was saved, delete it
+                        evt.reply("This ticket will be deleted in `30` seconds...").queue();
+                        channel.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
+                        channel.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
+                        channel.delete().queueAfter(30, TimeUnit.SECONDS);
+                        return;
+                    }
+                }
+                evt.reply("The ticket could not be closed due to an error...").setEphemeral(true).queue();
+            }
         }
     }
 
@@ -338,7 +379,11 @@ public class TicketManager extends ListenerAdapter {
         chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
         return true;
     }
-    public boolean saveAndCloseTicket(TextChannel textChannel, Member closer) {
+    public boolean saveAndCloseTicket(TextChannel textChannel, Member closer, String reason) {
+        if (API.getInstance().saveTicketToFile(textChannel, closer, reason)) {
+            textChannel.delete().queueAfter(30, TimeUnit.SECONDS);
+            return true;
+        }
         return false;
     }
 }
