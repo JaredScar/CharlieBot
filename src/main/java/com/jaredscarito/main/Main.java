@@ -6,10 +6,15 @@ import com.jaredscarito.logger.Logger;
 import com.jaredscarito.sql.SQLHelper;
 import com.jaredscarito.managers.MuteManager;
 import com.jaredscarito.managers.TicketManager;
+import com.timvisee.yamlwrapper.ConfigurationSection;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.restaction.CommandCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
@@ -74,8 +79,39 @@ public class Main {
             String commandLabel = command.toLowerCase();
             String desc = getInstance().getConfig().getString("Bot.Commands." + command + ".Description");
             boolean enabled = getInstance().getConfig().getBoolean("Bot.Commands." + command + ".Enabled");
-            if (enabled)
-                jdaInstance.upsertCommand(commandLabel, desc).queue();
+            if (enabled) {
+                CommandCreateAction act = jdaInstance.upsertCommand(commandLabel, desc);
+                ConfigurationSection subCommandSection = getInstance().getConfig().getConfigurationSection("Bot.Commands." + command
+                        + ".Sub-Commands");
+                if (subCommandSection != null) {
+                    List<String> subCommands = subCommandSection.getKeys();
+                    // They have subcommands, add them to act
+                    for (String subcommandKey : subCommands) {
+                        String subcommandLabel = subcommandKey.toLowerCase();
+                        String subcommandDesc = subCommandSection.getString(subcommandKey + ".Description");
+                        SubcommandData data = new SubcommandData(subcommandLabel, subcommandDesc);
+                        ConfigurationSection optionSection = getInstance().getConfig().getConfigurationSection("Bot.Commands." + command
+                                + ".Sub-Commands." + subcommandKey + ".Options");
+                        if (optionSection != null) {
+                            List<String> options = optionSection.getKeys();
+                            for (String optionKey : options) {
+                                String optionLabel = optionKey.toLowerCase();
+                                String optionType = optionSection.getString(optionKey + ".Type");
+                                String optionDesc = optionSection.getString(optionKey + ".Description");
+                                switch (optionType) {
+                                    case "MEMBER":
+                                        data.addOption(OptionType.USER, optionLabel, optionDesc);
+                                        break;
+                                    case "STRING":
+                                        data.addOption(OptionType.STRING, optionLabel, optionDesc);
+                                }
+                            }
+                        }
+                        act = act.addSubcommands(data);
+                    }
+                }
+                act.queue();
+            }
         }
         JDA_INSTANCE = jdaInstance;
         ticketManager = new TicketManager();

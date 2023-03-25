@@ -225,13 +225,15 @@ public class TicketManager extends ListenerAdapter {
                 if (evt.getGuild() != null) {
                     TextChannel channel = evt.getGuild().getTextChannelById(channelId);
                     if (channel != null) {
-                        this.saveAndCloseTicket(channel, evt.getMember(), reason);
-                        // it was saved, delete it
-                        evt.reply("This ticket will be deleted in `30` seconds...").queue();
-                        channel.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
-                        channel.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
-                        channel.delete().queueAfter(30, TimeUnit.SECONDS);
-                        return;
+                        if (this.deleteTicketFromDB(channel)) {
+                            this.saveAndCloseTicket(channel, evt.getMember(), reason);
+                            // it was saved, delete it
+                            evt.reply("This ticket will be deleted in `30` seconds...").queue();
+                            channel.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
+                            channel.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
+                            channel.delete().queueAfter(30, TimeUnit.SECONDS);
+                            return;
+                        }
                     }
                 }
                 evt.reply("The ticket could not be closed due to an error...").setEphemeral(true).queue();
@@ -239,7 +241,20 @@ public class TicketManager extends ListenerAdapter {
         }
     }
 
-    private void addManagersToTicket(TextChannel chan, String ticket_type) {
+    public boolean deleteTicketFromDB(TextChannel chan) {
+        try {
+            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("DELETE FROM `tickets` WHERE `channel_id` = ?");
+            stmt.setLong(1, chan.getIdLong());
+            stmt.execute();
+            return true;
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void addManagersToTicket(TextChannel chan, String ticket_type) {
         List<Permission> allows = new ArrayList<>();
         List<Permission> denies = new ArrayList<>();
         allows.add(Permission.MESSAGE_SEND);

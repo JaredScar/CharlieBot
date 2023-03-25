@@ -9,10 +9,14 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
+import java.util.List;
+
 public class TicketCommand {
     public static void invoke(SlashCommandInteractionEvent evt) {
-        OptionMapping user = evt.getOption("user");
-        OptionMapping userId = evt.getOption("userId");
+        User user = null;
+        if (evt.getOption("member") != null) {
+            user = evt.getOption("member").getAsUser();
+        }
         String subCommand = evt.getSubcommandName();
         TextChannel chan = evt.getChannel().asTextChannel();
         Member mem = evt.getMember();
@@ -25,16 +29,8 @@ public class TicketCommand {
             switch (subCommand.toLowerCase()) {
                 case "add":
                     if (tm.canManageTicket(mem, ticket_type)) {
-                        boolean added = false;
-                        long uid = -1;
-                        if (user != null) {
-                            uid = user.getAsUser().getIdLong();
-                            added = tm.addMember(chan, uid);
-                        }
-                        if (userId != null) {
-                            uid = userId.getAsLong();
-                            added = tm.addMember(chan, uid);
-                        }
+                        long uid = user.getIdLong();
+                        boolean added = tm.addMember(chan, uid);
                         if (added && uid != -1) {
                             if (evt.getGuild() == null) return;
                             Member memberById = evt.getGuild().getMemberById(uid);
@@ -49,16 +45,8 @@ public class TicketCommand {
                     break;
                 case "remove":
                     if (tm.canManageTicket(mem, ticket_type)) {
-                        boolean removed = false;
-                        long uid = -1;
-                        if (user != null) {
-                            uid = user.getAsUser().getIdLong();
-                            removed = tm.removeMember(chan, uid);
-                        }
-                        if (userId != null) {
-                            uid = userId.getAsLong();
-                            removed = tm.removeMember(chan, uid);
-                        }
+                        long uid = user.getIdLong();
+                        boolean removed = tm.removeMember(chan, uid);
                         if (removed && uid != -1) {
                             // Member was removed, send message
                             if (evt.getGuild() == null) return;
@@ -71,7 +59,13 @@ public class TicketCommand {
                     }
                     break;
                 case "members":
-                    // TODO Print out the members of the channel
+                    List<Member> chanMembers = chan.getMembers();
+                    String memberList = "The members of this ticket are:\n";
+                    for (Member m : chanMembers) {
+                        if (!m.getUser().isBot())
+                            memberList += m.getAsMention();
+                    }
+                    evt.getHook().sendMessage(memberList).setEphemeral(true).queue();
                     break;
                 case "lock":
                     if (tm.canManageTicket(mem, ticket_type)) {
@@ -83,9 +77,18 @@ public class TicketCommand {
                         boolean wasUnlocked = tm.unlockTicket(chan, mem);
                     }
                     break;
+                case "close":
+                    String reason = "";
+                    if (evt.getOption("reason") != null) {
+                        reason = evt.getOption("reason").getAsString();
+                    }
+                    if (tm.canManageTicket(mem, ticket_type)) {
+                        tm.saveAndCloseTicket(chan, mem, reason);
+                    }
+                    break;
             }
         } else {
-            // Not a valid ticket, let them know these commands can only be ran inside ticket channels...
+            // Not a valid ticket, let them know these commands can only be run inside ticket channels...
             API.getInstance().sendErrorMessage(evt, mem, "Error: This is not a valid ticket.", "These commands can only be ran inside of a valid ticket...");
         }
     }
