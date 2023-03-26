@@ -3,6 +3,7 @@ package com.jaredscarito.managers;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.jaredscarito.models.ActionType;
 import com.mysql.cj.log.Log;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
@@ -20,8 +21,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
-import net.dv8tion.jda.api.managers.channel.ChannelManager;
-import net.dv8tion.jda.api.managers.channel.attribute.IPermissionContainerManager;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -148,9 +147,11 @@ public class TicketManager extends ListenerAdapter {
                 }
                 case "lockTicket" -> {
                     boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
+                    Logger.log(ActionType.LOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
                 }
                 case "unlockTicket" -> {
                     boolean ticketWasUnlocked = this.unlockTicket(evt.getChannel().asTextChannel(), evt.getMember());
+                    Logger.log(ActionType.UNLOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
                 }
             }
             return; // Not enough arguments for a create_ticket option response
@@ -198,6 +199,7 @@ public class TicketManager extends ListenerAdapter {
                                         String newLine = System.getProperty("line.separator");
                                         String newMsg = startMessage.replace("\\n", newLine);
                                         textChan.sendMessage(newMsg).queue();
+                                        Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                     }
                                 });
                             }
@@ -226,12 +228,14 @@ public class TicketManager extends ListenerAdapter {
                     TextChannel channel = evt.getGuild().getTextChannelById(channelId);
                     if (channel != null) {
                         if (this.deleteTicketFromDB(channel)) {
-                            this.saveAndCloseTicket(channel, evt.getMember(), reason);
+                            this.saveTicket(channel, evt.getMember(), reason);
                             // it was saved, delete it
                             evt.reply("This ticket will be deleted in `30` seconds...").queue();
                             channel.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
                             channel.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
                             channel.delete().queueAfter(30, TimeUnit.SECONDS);
+                            String ticketTitle = channel.getName();
+                            Logger.log(ActionType.CLOSE_TICKET, evt.getMember(), ticketTitle, reason);
                             return;
                         }
                     }
@@ -394,11 +398,7 @@ public class TicketManager extends ListenerAdapter {
         chan.getPermissionContainer().getManager().putMemberPermissionOverride(mem.getIdLong(), allows, denies).queue();
         return true;
     }
-    public boolean saveAndCloseTicket(TextChannel textChannel, Member closer, String reason) {
-        if (API.getInstance().saveTicketToFile(textChannel, closer, reason)) {
-            textChannel.delete().queueAfter(30, TimeUnit.SECONDS);
-            return true;
-        }
-        return false;
+    public void saveTicket(TextChannel textChannel, Member closer, String reason) {
+        API.getInstance().saveTicketToFile(textChannel, closer, reason, (result) -> {});
     }
 }

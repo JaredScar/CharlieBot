@@ -1,21 +1,24 @@
 package com.jaredscarito.listeners.commands;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.managers.TicketManager;
+import com.jaredscarito.models.ActionType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class TicketCommand {
     public static void invoke(SlashCommandInteractionEvent evt) {
         User user = null;
         if (evt.getOption("member") != null) {
-            user = evt.getOption("member").getAsUser();
+            user = Objects.requireNonNull(evt.getOption("member")).getAsUser();
         }
         String subCommand = evt.getSubcommandName();
         TextChannel chan = evt.getChannel().asTextChannel();
@@ -29,6 +32,7 @@ public class TicketCommand {
             switch (subCommand.toLowerCase()) {
                 case "add":
                     if (tm.canManageTicket(mem, ticket_type)) {
+                        assert user != null;
                         long uid = user.getIdLong();
                         boolean added = tm.addMember(chan, uid);
                         if (added && uid != -1) {
@@ -36,6 +40,7 @@ public class TicketCommand {
                             Member memberById = evt.getGuild().getMemberById(uid);
                             if (memberById == null) return;
                             chan.sendMessage("Success: User " + memberById.getEffectiveName() + " has been added to the ticket...").queue();
+                            Logger.log(ActionType.TICKET_ADD_MEMBER, evt.getMember(), memberById, chan, "");
                         } else {
                             API.getInstance().sendErrorMessage(evt, mem, "Error: Something went wrong...", "Something went wrong when this user was being added to the ticket...");
                         }
@@ -45,6 +50,7 @@ public class TicketCommand {
                     break;
                 case "remove":
                     if (tm.canManageTicket(mem, ticket_type)) {
+                        assert user != null;
                         long uid = user.getIdLong();
                         boolean removed = tm.removeMember(chan, uid);
                         if (removed && uid != -1) {
@@ -53,6 +59,7 @@ public class TicketCommand {
                             Member memberById = evt.getGuild().getMemberById(uid);
                             if (memberById == null) return;
                             chan.sendMessage("Success: User " + memberById.getEffectiveName() + " has been removed from the ticket...").queue();
+                            Logger.log(ActionType.TICKET_REMOVE_MEMBER, evt.getMember(), memberById, chan, "");
                         } else {
                             API.getInstance().sendErrorMessage(evt, mem, "Error: Something went wrong...", "Something went wrong when this user was being removed from the ticket...");
                         }
@@ -70,20 +77,30 @@ public class TicketCommand {
                 case "lock":
                     if (tm.canManageTicket(mem, ticket_type)) {
                         boolean wasLocked = tm.lockTicket(chan, mem);
+                        Logger.log(ActionType.LOCK_TICKET, mem, chan, "");
                     }
                     break;
                 case "unlock":
                     if (tm.canManageTicket(mem, ticket_type)) {
                         boolean wasUnlocked = tm.unlockTicket(chan, mem);
+                        Logger.log(ActionType.UNLOCK_TICKET, mem, chan, "");
                     }
                     break;
                 case "close":
                     String reason = "";
                     if (evt.getOption("reason") != null) {
-                        reason = evt.getOption("reason").getAsString();
+                        reason = Objects.requireNonNull(evt.getOption("reason")).getAsString();
                     }
                     if (tm.canManageTicket(mem, ticket_type)) {
-                        tm.saveAndCloseTicket(chan, mem, reason);
+                        if (tm.deleteTicketFromDB(chan)) {
+                            tm.saveTicket(chan, evt.getMember(), reason);
+                            // it was saved, delete it
+                            evt.getHook().sendMessage("This ticket will be deleted in `30` seconds...").queue();
+                            chan.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
+                            chan.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
+                            chan.delete().queueAfter(30, TimeUnit.SECONDS);
+                            Logger.log(ActionType.CLOSE_TICKET, evt.getMember(), reason);
+                        }
                     }
                     break;
             }

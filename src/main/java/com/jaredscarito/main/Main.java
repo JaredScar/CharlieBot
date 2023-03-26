@@ -98,12 +98,14 @@ public class Main {
                                 String optionLabel = optionKey.toLowerCase();
                                 String optionType = optionSection.getString(optionKey + ".Type");
                                 String optionDesc = optionSection.getString(optionKey + ".Description");
+                                boolean required = optionSection.get(optionKey + ".Required") != null &&
+                                        optionSection.getBoolean(optionKey + ".Required");
                                 switch (optionType) {
                                     case "MEMBER":
-                                        data.addOption(OptionType.USER, optionLabel, optionDesc);
+                                        data.addOption(OptionType.USER, optionLabel, optionDesc, required);
                                         break;
                                     case "STRING":
-                                        data.addOption(OptionType.STRING, optionLabel, optionDesc);
+                                        data.addOption(OptionType.STRING, optionLabel, optionDesc, required);
                                 }
                             }
                         }

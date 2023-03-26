@@ -2,6 +2,7 @@ package com.jaredscarito.listeners.api;
 
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.mysql.cj.log.Log;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -13,14 +14,20 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class API {
@@ -31,6 +38,78 @@ public class API {
 
     public String getConfigValue(String path) {
         return Main.getInstance().getConfig().getString(path);
+    }
+
+    public boolean addPoints(Member mem, int points) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `points` (`discord_id`, `lastKnownName`, " +
+                    "`lastKnownAvatar`, `points`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
+                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` + ?");
+            long discordId = mem.getIdLong();
+            String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
+            String avatarUrl = mem.getAvatarUrl();
+            stmt.setLong(1, discordId);
+            stmt.setString(2, name);
+            stmt.setString(3, avatarUrl);
+            stmt.setInt(4, points);
+            stmt.setString(5, name);
+            stmt.setString(6, avatarUrl);
+            stmt.setInt(7, points);
+            stmt.execute();
+            return true;
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public int getPoints(Member mem) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT `points` FROM `points` WHERE `discord_id` = ?");
+            stmt.setLong(1, mem.getIdLong());
+            stmt.execute();
+            ResultSet res = stmt.getResultSet();
+            res.next();
+            return res.getInt("points");
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return 0;
+    }
+    public void gamble(SlashCommandInteractionEvent evt, Member mem, int points) {}
+    public void lockdownEnable(TextChannel chan) {}
+    public void lockdownDisable(TextChannel chan) {}
+    public boolean addSticky(TextChannel chan, String msg) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `stickies` (`channel_id`, `message`) " +
+                    "VALUES (?, ?) ON DUPLICATE KEY UPDATE `message` = ?");
+            stmt.setLong(1, chan.getIdLong());
+            stmt.setString(2, msg);
+            stmt.setString(3, msg);
+            stmt.execute();
+            return true;
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return false;
+    }
+    public boolean removeSticky(TextChannel chan) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("DELETE FROM `stickies` WHERE `channel_id` = ?");
+            stmt.setLong(1, chan.getIdLong());
+            stmt.execute();
+            return true;
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return false;
     }
 
     public void sendErrorMessage(StringSelectInteractionEvent evt, Member mem, String title, String desc) {
@@ -100,11 +179,8 @@ public class API {
         Button denyBtn = Button.danger("deny|" + optVal, getConfigValue("Bot.Buttons.Deny_Button"));
         evt.replyEmbeds(eb.build()).addActionRow(confirmBtn, denyBtn).setEphemeral(true).queue();
     }
-    public MessageEmbed createTicketCloseMessage() {
-        return null;
-    }
 
-    public boolean saveTicketToFile(TextChannel chan, Member closer, String closeReason) {
+    public void saveTicketToFile(TextChannel chan, Member closer, String closeReason, Consumer<Boolean> result) {
         File ticketSaveDir = new File("ticket_logs");
         if (!ticketSaveDir.exists()) ticketSaveDir.mkdir();
         File logFile = new File("ticket_logs/" + chan.getId() + "-log.html");
@@ -182,10 +258,6 @@ public class API {
                     List<File> files = new ArrayList<>();
                     for (Message.Attachment attach : attachments) {
                         CompletableFuture<File> file = attach.downloadToFile();
-                        file.exceptionally((exception) -> {
-                            exception.printStackTrace();
-                            return null;
-                        });
                         File attachment = new File("ticket_log/attachments/" + chan.getId() + "-" + attach.getFileName()
                                 + "." + attach.getFileExtension());
                         file.complete(attachment);
@@ -229,22 +301,21 @@ public class API {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    /** /
+                    TextChannel LOG_CHANNEL = Main.getInstance().getJDA().getTextChannelById(Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel"));
                     if (LOG_CHANNEL != null) {
                         LOG_CHANNEL.sendMessage("A ticket has been logged. **TITLE:** `" + chan.getName() + "`")
-                                .addFile(logFile).queue(message -> {
-                                    // It completed, we want to delete the file now
+                                .addFiles(FileUpload.fromData(logFile)).queue((msg) -> {
                                     logFile.delete();
                                 });
                     }
-                     /**/
+                    result.accept(true);
                     return true;
                 }
+                result.accept(false);
                 return false;
             });
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return false;
     }
 }
