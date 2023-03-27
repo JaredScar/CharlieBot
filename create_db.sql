@@ -20,6 +20,13 @@ CREATE TABLE `points` (
     `points` INT(128) NOT NULL
 );
 
+CREATE TABLE `ranking` (
+    `discord_id` BIGINT(128) PRIMARY KEY,
+    `lastKnownName` VARCHAR(128) NOT NULL,
+    `lastKnownAvatar` VARCHAR(255) NOT NULL,
+    `exp` INT(128) NOT NULL
+);
+
 CREATE TABLE `blacklists` (
     `blacklist_id` INT(128) AUTO_INCREMENT PRIMARY KEY,
     `discord_id` BIGINT(128) UNIQUE KEY,

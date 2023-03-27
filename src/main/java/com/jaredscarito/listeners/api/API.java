@@ -79,6 +79,28 @@ public class API {
         }
         return 0;
     }
+    public int getRank(Member mem) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT `exp` FROM `ranking` WHERE `discord_id` = ?");
+            stmt.setLong(1, mem.getIdLong());
+            stmt.execute();
+            ResultSet res = stmt.getResultSet();
+            res.next();
+            int points = res.getInt("points");
+            int rank = 1;
+            for (int ranking = 1; ranking < 9999; ranking++) {
+                if (ranking * ranking * ranking > points)
+                    break;
+                rank++;
+            }
+            return rank;
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return 1;
+    }
     public void gamble(SlashCommandInteractionEvent evt, Member mem, int points) {}
     public void lockdownEnable(TextChannel chan) {}
     public void lockdownDisable(TextChannel chan) {}

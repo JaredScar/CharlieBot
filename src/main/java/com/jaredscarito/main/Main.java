@@ -81,6 +81,25 @@ public class Main {
             boolean enabled = getInstance().getConfig().getBoolean("Bot.Commands." + command + ".Enabled");
             if (enabled) {
                 CommandCreateAction act = jdaInstance.upsertCommand(commandLabel, desc);
+                ConfigurationSection optSection = getInstance().getConfig().getConfigurationSection("Bot.Commands." + command
+                        + ".Options");
+                if (optSection != null) {
+                    List<String> opts = optSection.getKeys();
+                    for (String optionKey : opts) {
+                        String optionLabel = optionKey.toLowerCase();
+                        String optionType = optSection.getString(optionKey + ".Type");
+                        String optionDesc = optSection.getString(optionKey + ".Description");
+                        boolean required = optSection.get(optionKey + ".Required") != null &&
+                                optSection.getBoolean(optionKey + ".Required");
+                        switch (optionType) {
+                            case "MEMBER":
+                                act.addOption(OptionType.USER, optionLabel, optionDesc, required);
+                                break;
+                            case "STRING":
+                                act.addOption(OptionType.STRING, optionLabel, optionDesc, required);
+                        }
+                    }
+                }
                 ConfigurationSection subCommandSection = getInstance().getConfig().getConfigurationSection("Bot.Commands." + command
                         + ".Sub-Commands");
                 if (subCommandSection != null) {
