@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandCreateAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
@@ -66,6 +67,14 @@ public class Main {
         }
         return helper;
     }
+
+    private static void addOption(CommandCreateAction commandCreateAction, SubcommandData subcommandData, String optionType, String optionLabel, String optionDesc, boolean required) {
+            if (subcommandData != null)
+                subcommandData.addOption(OptionType.valueOf(optionType), optionLabel, optionDesc, required);
+            if (commandCreateAction != null)
+                commandCreateAction.addOption(OptionType.valueOf(optionType), optionLabel, optionDesc, required);
+    }
+
     public static void main(String[] args) throws InterruptedException {
         String token = main.getConfig().getString("Bot.Token");
         JDA jdaInstance = JDABuilder.createDefault(token).enableIntents(
@@ -91,13 +100,7 @@ public class Main {
                         String optionDesc = optSection.getString(optionKey + ".Description");
                         boolean required = optSection.get(optionKey + ".Required") != null &&
                                 optSection.getBoolean(optionKey + ".Required");
-                        switch (optionType) {
-                            case "MEMBER":
-                                act.addOption(OptionType.USER, optionLabel, optionDesc, required);
-                                break;
-                            case "STRING":
-                                act.addOption(OptionType.STRING, optionLabel, optionDesc, required);
-                        }
+                        addOption(act, null, optionType, optionLabel, optionDesc, required);
                     }
                 }
                 ConfigurationSection subCommandSection = getInstance().getConfig().getConfigurationSection("Bot.Commands." + command
@@ -119,13 +122,7 @@ public class Main {
                                 String optionDesc = optionSection.getString(optionKey + ".Description");
                                 boolean required = optionSection.get(optionKey + ".Required") != null &&
                                         optionSection.getBoolean(optionKey + ".Required");
-                                switch (optionType) {
-                                    case "MEMBER":
-                                        data.addOption(OptionType.USER, optionLabel, optionDesc, required);
-                                        break;
-                                    case "STRING":
-                                        data.addOption(OptionType.STRING, optionLabel, optionDesc, required);
-                                }
+                                addOption(null, data, optionType, optionLabel, optionDesc, required);
                             }
                         }
                         act = act.addSubcommands(data);

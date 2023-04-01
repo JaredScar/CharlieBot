@@ -16,6 +16,7 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.FileUpload;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -79,6 +80,30 @@ public class API {
         }
         return 0;
     }
+    public boolean addRankExp(Member mem, int exp) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `ranking` (`discord_id`, `lastKnownName`, " +
+                    "`lastKnownAvatar`, `exp`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
+                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `exp` = `exp` + ?");
+            long discordId = mem.getIdLong();
+            String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
+            String avatarUrl = mem.getAvatarUrl();
+            stmt.setLong(1, discordId);
+            stmt.setString(2, name);
+            stmt.setString(3, avatarUrl);
+            stmt.setInt(4, exp);
+            stmt.setString(5, name);
+            stmt.setString(6, avatarUrl);
+            stmt.setInt(7, exp);
+            stmt.execute();
+            return true;
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        return false;
+    }
     public int getRank(Member mem) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {
@@ -134,6 +159,22 @@ public class API {
         return false;
     }
 
+    public MessageCreateAction sendSuccessMessage(TextChannel chan, Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        eb.setColor(Color.GREEN);
+        return chan.sendMessageEmbeds(eb.build());
+    }
+    public MessageCreateAction sendErrorMessage(TextChannel chan, Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        eb.setColor(Color.RED);
+        return chan.sendMessageEmbeds(eb.build());
+    }
     public void sendErrorMessage(StringSelectInteractionEvent evt, Member mem, String title, String desc) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(title);
