@@ -3,6 +3,7 @@ package com.jaredscarito.main;
 import com.jaredscarito.listeners.commands.general.GeneralCommandEventListener;
 import com.jaredscarito.listeners.messaging.general.GeneralMessageEventListener;
 import com.jaredscarito.logger.Logger;
+import com.jaredscarito.managers.KickManager;
 import com.jaredscarito.sql.SQLHelper;
 import com.jaredscarito.managers.MuteManager;
 import com.jaredscarito.managers.TicketManager;
@@ -27,6 +28,8 @@ public class Main {
     private static JDA JDA_INSTANCE = null;
     private static final Main main = new Main();
     private static TicketManager ticketManager = null;
+    private static KickManager kickManager = null;
+    private static MuteManager muteManager = null;
     public static Main getInstance() {
         return main;
     }
@@ -133,10 +136,13 @@ public class Main {
         }
         JDA_INSTANCE = jdaInstance;
         ticketManager = new TicketManager();
+        muteManager = new MuteManager();
+        kickManager = new KickManager();
         jdaInstance.addEventListener(
                 new GeneralCommandEventListener(),
                 new GeneralMessageEventListener(),
-                new MuteManager(),
+                muteManager,
+                kickManager,
                 ticketManager
         );
     }

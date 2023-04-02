@@ -9,9 +9,9 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 ### Commands
 
 #### Ticket
-`/ticket add [(user)/(userId)]`
+`/ticket add [user]`
 
-`/ticket remove [(user)/(userId)]`
+`/ticket remove [user]`
 
 `/ticket members`
 
@@ -26,6 +26,8 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 `/points leaderboard`
 
 `/points store`
+
+`/points redeem [item] [amount]`
 #### Gamble
 `/gamble [points]`
 #### Bark
@@ -35,15 +37,15 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 
 `/sticky remove`
 #### Lockdown
-`/lockdown enable`
+`/lockdown [boolean]`
 
-`/lockdown disable`
+`/lockdown [boolean]`
 #### Mute
-`/mute add [(user)/(userId)]`
-`/mute remove [(user)/(userId)]`
+`/mute add [user]`
+`/mute remove [user]`
 #### Kick
-`/kick [(user)/(userId)]`
+`/kick [user]`
 #### Blacklist
-`/blacklist [(user)/(userId)]`
+`/blacklist [user]`
 #### Ban
-`/ban [(user)/(userId)]`
+`/ban [user]`

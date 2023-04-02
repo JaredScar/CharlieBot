@@ -5,6 +5,7 @@ import com.jaredscarito.models.ActionType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 import java.io.File;
@@ -166,6 +167,49 @@ public class Logger {
                         performedBy.getUser().getDiscriminator() + "");
                 writer.write("\nPerformed on: " + performedOn.getUser().getName() + "#" +
                         performedOn.getUser().getDiscriminator() + "");
+                if (reason.length() > 0)
+                    writer.write("\nReason: " + reason + "");
+                writer.write("\n----------------------\n");
+                writer.flush();
+                writer.close();
+            } catch (IOException e) {
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
+        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
+        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
+        if (guild == null) return;
+        TextChannel logChan = guild.getTextChannelById(logChannel);
+        if (logChan == null) return;
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
+        eb.setThumbnail(performedOn.getAvatarUrl());
+        eb.setTitle(actionType.name());
+        eb.addField("Performed By", performedBy.getAsMention(), true);
+        eb.addField("Performed On", performedOn.getAsMention(), true);
+        if (reason.length() > 0)
+            eb.addField("Reason", reason, false);
+        logChan.sendMessageEmbeds(eb.build()).queue();
+    }
+    public static void log(ActionType actionType, Member performedBy, User performedOn, String reason) {
+        File actionLog = new File("logs/actions.txt");
+        if (!actionLog.exists()) {
+            try {
+                actionLog.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (actionLog.exists()) {
+            try {
+                FileWriter writer = new FileWriter(actionLog, true);
+                writer.write("[" + getCurrentDatetimeString() + "] " + actionType.name() + ":");
+                writer.write("\nPerformed by: " + performedBy.getUser().getName() + "#" +
+                        performedBy.getUser().getDiscriminator() + "");
+                writer.write("\nPerformed on: " + performedOn.getName() + "#" +
+                        performedOn.getDiscriminator() + "");
                 if (reason.length() > 0)
                     writer.write("\nReason: " + reason + "");
                 writer.write("\n----------------------\n");

@@ -29,7 +29,7 @@ CREATE TABLE `ranking` (
 
 CREATE TABLE `blacklists` (
     `blacklist_id` INT(128) AUTO_INCREMENT PRIMARY KEY,
-    `discord_id` BIGINT(128) UNIQUE KEY,
+    `discord_id` BIGINT(128) UNIQUE KEY
 );
 
 CREATE TABLE `roles` (

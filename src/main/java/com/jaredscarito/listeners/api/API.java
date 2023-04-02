@@ -49,7 +49,7 @@ public class API {
                     "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` + ?");
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
-            String avatarUrl = mem.getAvatarUrl();
+            String avatarUrl = mem.getUser().getAvatarUrl();
             stmt.setLong(1, discordId);
             stmt.setString(2, name);
             stmt.setString(3, avatarUrl);
@@ -159,6 +159,14 @@ public class API {
         return false;
     }
 
+    public EmbedBuilder sendSuccessMessage(Member mem, String title, String desc) {
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(title);
+        eb.setDescription(desc);
+        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        eb.setColor(Color.GREEN);
+        return eb;
+    }
     public MessageCreateAction sendSuccessMessage(TextChannel chan, Member mem, String title, String desc) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(title);
