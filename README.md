@@ -18,6 +18,14 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 `/ticket lock`
 
 `/ticket unlock`
+#### Rules
+`/rules`
+
+`/rules add`
+
+`/rules edit`
+
+`/rules remove`
 #### Points
 `/points`
 

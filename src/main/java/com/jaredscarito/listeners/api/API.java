@@ -65,6 +65,26 @@ public class API {
         }
         return false;
     }
+    public boolean removePoints(Member mem, int points) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("UPDATE `points` SET " +
+                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` - ? WHERE `discord_id` = ?");
+            long discordId = mem.getIdLong();
+            String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
+            String avatarUrl = mem.getUser().getAvatarUrl();
+            stmt.setString(1, name);
+            stmt.setString(2, avatarUrl);
+            stmt.setInt(3, points);
+            stmt.setLong(4, discordId);
+            stmt.execute();
+            return true;
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        return false;
+    }
     public int getPoints(Member mem) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {
@@ -88,7 +108,7 @@ public class API {
                     "`lastKnownName` = ?, `lastKnownAvatar` = ?, `exp` = `exp` + ?");
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
-            String avatarUrl = mem.getAvatarUrl();
+            String avatarUrl = mem.getUser().getAvatarUrl();
             stmt.setLong(1, discordId);
             stmt.setString(2, name);
             stmt.setString(3, avatarUrl);
@@ -111,11 +131,11 @@ public class API {
             stmt.setLong(1, mem.getIdLong());
             stmt.execute();
             ResultSet res = stmt.getResultSet();
-            res.next();
-            int points = res.getInt("points");
+            if (!res.next()) return 1;
+            int exp = res.getInt("exp");
             int rank = 1;
             for (int ranking = 1; ranking < 9999; ranking++) {
-                if (ranking * ranking * ranking > points)
+                if (ranking * ranking * ranking > exp)
                     break;
                 rank++;
             }
