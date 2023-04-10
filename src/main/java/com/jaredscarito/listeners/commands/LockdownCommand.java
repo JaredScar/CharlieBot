@@ -26,6 +26,7 @@ public class LockdownCommand {
                         .setPlaceholder("Reason for enabling  lockdown")
                         .setMinLength(0)
                         .setMaxLength(1024)
+                        .setRequired(true)
                         .build();
                 modal = Modal.create("lockdownEnable|" + evt.getChannel().getId(), "Enable Lockdown")
                         .addComponents(ActionRow.of(inp))
@@ -36,6 +37,7 @@ public class LockdownCommand {
                         .setPlaceholder("Reason for disabling  lockdown")
                         .setMinLength(0)
                         .setMaxLength(1024)
+                        .setRequired(true)
                         .build();
                 modal = Modal.create("lockdownDisable|" + evt.getChannel().getId(), "Disable Lockdown")
                         .addComponents(ActionRow.of(inp))

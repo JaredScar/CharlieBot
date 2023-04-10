@@ -29,7 +29,13 @@ public class BanCommand {
                 .setPlaceholder("1")
                 .setMinLength(0)
                 .setMaxLength(999).setRequired(true).build();
-        StringSelectMenu selectionMenu = StringSelectMenu.create("timeUnit").build();
+        StringSelectMenu selectionMenu = StringSelectMenu.create("timeUnit")
+                .addOption("Forever", "Forever")
+                .addOption("Seconds", "second")
+                .addOption("Minutes", "minute")
+                .addOption("Hours", "hour")
+                .addOption("Days", "day")
+                .build();
         Modal modal = Modal.create("banUser"
                         + "|" + user.getId(), "Ban User " + user.getName() + "#" + user.getDiscriminator())
                 .addComponents(ActionRow.of(selectionMenu), ActionRow.of(numInput), ActionRow.of(inp))
