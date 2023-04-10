@@ -22,6 +22,7 @@ public class KickCommand {
                 .setPlaceholder("Reason for kick")
                 .setMinLength(0)
                 .setMaxLength(1024)
+                .setRequired(true)
                 .build();
         Modal modal = Modal.create("kickUser"
                         + "|" + user.getId(), "Kick User " + user.getName() + "#" + user.getDiscriminator())

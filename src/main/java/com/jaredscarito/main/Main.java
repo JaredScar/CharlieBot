@@ -3,10 +3,8 @@ package com.jaredscarito.main;
 import com.jaredscarito.listeners.commands.general.GeneralCommandEventListener;
 import com.jaredscarito.listeners.messaging.general.GeneralMessageEventListener;
 import com.jaredscarito.logger.Logger;
-import com.jaredscarito.managers.KickManager;
+import com.jaredscarito.managers.*;
 import com.jaredscarito.sql.SQLHelper;
-import com.jaredscarito.managers.MuteManager;
-import com.jaredscarito.managers.TicketManager;
 import com.timvisee.yamlwrapper.ConfigurationSection;
 import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
@@ -30,6 +28,11 @@ public class Main {
     private static TicketManager ticketManager = null;
     private static KickManager kickManager = null;
     private static MuteManager muteManager = null;
+    private static LockdownManager lockdownManager = null;
+    private static BanManager banManager = null;
+    private static BlacklistManager blacklistManager;
+    private static StickyManager stickyManager;
+
     public static Main getInstance() {
         return main;
     }
@@ -138,12 +141,20 @@ public class Main {
         ticketManager = new TicketManager();
         muteManager = new MuteManager();
         kickManager = new KickManager();
+        lockdownManager = new LockdownManager();
+        banManager = new BanManager();
+        blacklistManager = new BlacklistManager();
+        stickyManager = new StickyManager();
         jdaInstance.addEventListener(
                 new GeneralCommandEventListener(),
                 new GeneralMessageEventListener(),
                 muteManager,
                 kickManager,
-                ticketManager
+                ticketManager,
+                lockdownManager,
+                banManager,
+                blacklistManager,
+                stickyManager
         );
     }
 }
