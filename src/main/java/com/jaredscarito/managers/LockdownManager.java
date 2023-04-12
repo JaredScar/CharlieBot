@@ -1,6 +1,5 @@
 package com.jaredscarito.managers;
 
-import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.models.ActionType;
@@ -11,6 +10,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ public class LockdownManager extends ListenerAdapter {
         if (evt.getMember() == null) return;
         if (modelIdArgs.length <= 1) return;
         String isLockdown = modelIdArgs[0];
-        if (!isLockdown.equals("enableLockdown") && !isLockdown.equals("disableLockdown")) return;
+        if (!isLockdown.equals("lockdownEnable") && !isLockdown.equals("lockdownDisable")) return;
         ModalMapping modMap = evt.getValue("reason");
         if (modMap == null) return;
         String reason = modMap.getAsString();
@@ -33,15 +33,15 @@ public class LockdownManager extends ListenerAdapter {
         TextChannel chan = evt.getJDA().getTextChannelById(channelId);
         if (chan == null) return;
         switch (isLockdown) {
-            case "enableLockdown":
-                this.lockChannel(chan, evt.getMember(), reason);
+            case "lockdownEnable":
+                this.lockChannel(evt, chan, evt.getMember(), reason);
                 break;
-            case "disableLockdown":
-                this.unlockChannel(chan, evt.getMember(), reason);
+            case "lockdownDisable":
+                this.unlockChannel(evt, chan, evt.getMember(), reason);
                 break;
         }
     }
-    private void lockChannel(TextChannel chan, Member mem, String reason) {
+    private void lockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
         List<PermissionOverride> permissionOverrides = chan.getPermissionOverrides();
         Collection<Permission> allows = new ArrayList<>();
         Collection<Permission> denies = new ArrayList<>();
@@ -49,21 +49,19 @@ public class LockdownManager extends ListenerAdapter {
         denies.add(Permission.MESSAGE_ADD_REACTION);
         denies.add(Permission.MESSAGE_SEND_IN_THREADS);
         List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
+        TextChannelManager manager = chan.getManager();
         for (PermissionOverride permO : permissionOverrides) {
             if (permO.getRole() == null) continue;
             long roleId = permO.getRole().getIdLong();
             if (disregardRoles.contains(permO.getRole().getId())) continue;
 
-            if (permO.getRole().getPermissions().contains(Permission.CREATE_PUBLIC_THREADS))
-                denies.add(Permission.CREATE_PUBLIC_THREADS);
-            if (permO.getRole().getPermissions().contains(Permission.CREATE_PRIVATE_THREADS))
-                denies.add(Permission.CREATE_PRIVATE_THREADS);
-            chan.getManager().putRolePermissionOverride(roleId, allows, denies).queue();
+            manager.putRolePermissionOverride(roleId, allows, denies);
         }
+        manager.queue();
         Logger.log(ActionType.LOCKDOWN_START, mem, chan, reason);
-        chan.sendMessage("**\uD83D\uDD12 LOCKED CHANNEL** -- This channel has been locked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
+        evt.reply("**\uD83D\uDD12 LOCKED CHANNEL** -- This channel has been locked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
     }
-    private void unlockChannel(TextChannel chan, Member mem, String reason) {
+    private void unlockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
         List<PermissionOverride> permissionOverrides = chan.getPermissionOverrides();
         Collection<Permission> allows = new ArrayList<>();
         Collection<Permission> denies = new ArrayList<>();
@@ -71,18 +69,16 @@ public class LockdownManager extends ListenerAdapter {
         allows.add(Permission.MESSAGE_ADD_REACTION);
         allows.add(Permission.MESSAGE_SEND_IN_THREADS);
         List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
+        TextChannelManager manager = chan.getManager();
         for (PermissionOverride permO : permissionOverrides) {
             if (permO.getRole() == null) continue;
             long roleId = permO.getRole().getIdLong();
             if (disregardRoles.contains(permO.getRole().getId())) continue;
 
-            if (permO.getRole().getPermissions().contains(Permission.CREATE_PUBLIC_THREADS))
-                allows.add(Permission.CREATE_PUBLIC_THREADS);
-            if (permO.getRole().getPermissions().contains(Permission.CREATE_PRIVATE_THREADS))
-                allows.add(Permission.CREATE_PRIVATE_THREADS);
-            chan.getManager().putRolePermissionOverride(roleId, allows, denies).queue();
+            manager.putRolePermissionOverride(roleId, allows, denies);
         }
+        manager.queue();
         Logger.log(ActionType.LOCKDOWN_END, mem, chan, reason);
-        chan.sendMessage("**\uD83D\uDD13 UNLOCKED CHANNEL** -- This channel has been unlocked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
+        evt.reply("**\uD83D\uDD13 UNLOCKED CHANNEL** -- This channel has been unlocked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
     }
 }

@@ -18,7 +18,6 @@ public class GeneralCommandEventListener extends ListenerAdapter {
         if (!isEnabled(commandName)) return;
         List<Role> roles = mem.getRoles();
         if (!hasValidRole(commandName, roles)) return;
-        evt.deferReply(true).queue();
         switch (commandName.toLowerCase()) {
             case "bark" -> BarkCommand.invoke(evt);
             case "mute" -> MuteCommand.invoke(evt);

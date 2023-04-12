@@ -41,6 +41,35 @@ public class API {
         return Main.getInstance().getConfig().getString(path);
     }
 
+    public String getStickyMessage(TextChannel chan) {
+        long id = chan.getIdLong();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT `message` FROM `stickies` WHERE `channel_id` = ?");
+            stmt.setLong(1, id);
+            stmt.execute();
+            ResultSet rs = stmt.getResultSet();
+            if (rs.next())
+                return rs.getString("message");
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return "";
+    }
+    public void removeStickyMessage(TextChannel chan) {
+        long id = chan.getIdLong();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("DELETE FROM `stickies` WHERE `channel_id` = ?");
+            stmt.setLong(1, id);
+            stmt.execute();
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+    }
+
     public boolean addPoints(Member mem, int points) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {
