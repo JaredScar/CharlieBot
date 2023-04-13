@@ -26,7 +26,6 @@ public class StickyCommand {
         Modal modal = null;
         switch (subCommand.toLowerCase()) {
             case "add":
-                inp.setValue("");
                 modal = Modal.create("stickyAdd|" + evt.getChannel().getId(), "Add Sticky Message")
                         .addComponents(ActionRow.of(inp.build()))
                         .build();
@@ -38,6 +37,8 @@ public class StickyCommand {
                         .build();
                 break;
             case "remove":
+                API.getInstance().removeSticky(evt.getChannel().asTextChannel());
+                evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "The stickied message for this channel has been removed...!").build()).setEphemeral(true).queue();
                 break;
         }
         if (modal != null)

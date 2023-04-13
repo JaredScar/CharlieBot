@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -68,6 +69,25 @@ public class API {
             Logger.log(ex);
             ex.printStackTrace();
         }
+    }
+
+    public HashMap<Long, String> getStickyMessages() {
+        HashMap<Long, String> stickies = new HashMap<>();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `stickies`");
+            stmt.execute();
+            ResultSet rs = stmt.getResultSet();
+            while (rs.next()) {
+                long channelId = rs.getLong("channel_id");
+                String msg = rs.getString("message");
+                stickies.put(channelId, msg);
+            }
+        } catch (SQLException ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+        }
+        return stickies;
     }
 
     public boolean addPoints(Member mem, int points) {

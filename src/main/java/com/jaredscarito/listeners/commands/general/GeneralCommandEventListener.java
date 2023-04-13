@@ -27,6 +27,7 @@ public class GeneralCommandEventListener extends ListenerAdapter {
             case "lockdown" -> LockdownCommand.invoke(evt);
             case "ticket" -> TicketCommand.invoke(evt);
             case "gamble" -> GambleCommand.invoke(evt);
+            case "sticky" -> StickyCommand.invoke(evt);
         }
     }
     public boolean isEnabled(String command) {
