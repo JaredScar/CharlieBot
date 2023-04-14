@@ -1,7 +1,9 @@
 package com.jaredscarito.listeners.commands;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.managers.StickyManager;
+import com.jaredscarito.models.ActionType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -42,6 +44,7 @@ public class StickyCommand {
                 // Remove sticky message from channel if it is at bottom
                 StickyManager.removeStickyMessage(evt.getChannel().getIdLong());
                 evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "The stickied message for this channel has been removed...!").build()).setEphemeral(true).queue();
+                Logger.log(ActionType.STICKY_REMOVE, mem, evt.getChannel().asTextChannel(), "N/A");
                 break;
         }
         if (modal != null)
