@@ -34,14 +34,29 @@ public class StickyManager extends ListenerAdapter {
             case "stickyAdd":
                 evt.reply("Success: The sticky message has been added...").setEphemeral(true).queue();
                 API.getInstance().addSticky(chan, stickyMessage);
+                initializeStickyMessage(chan.getIdLong());
                 Logger.log(ActionType.STICKY_CREATE, evt.getMember(), evt.getChannel().getName(), stickyMessage);
                 break;
             case "stickyEdit":
                 evt.reply("Success: The sticky message has been edited...").setEphemeral(true).queue();
                 API.getInstance().addSticky(chan, stickyMessage);
+                initializeStickyMessage(chan.getIdLong());
                 Logger.log(ActionType.STICKY_EDIT, evt.getMember(), evt.getChannel().getName(), stickyMessage);
                 break;
         }
+    }
+
+    public static void removeStickyMessage(long channelId) {
+        JDA jda = Main.getInstance().getJDA();
+        TextChannel chan = jda.getTextChannelById(channelId);
+        if (chan == null) return;
+        String msg = "**__Stickied Message:__** " + API.getInstance().getStickyMessage(chan);
+        // Send message if it doesn't exist already above me
+        chan.getIterableHistory().takeAsync(1).thenAccept((msgList) -> {
+            if (msgList.size() == 0) return;
+            if (msgList.get(0).getContentRaw().equals(msg)) return;
+            msgList.get(0).delete().queue();
+        });
     }
 
     public static void initializeStickyMessage(long channelId) {
@@ -52,7 +67,7 @@ public class StickyManager extends ListenerAdapter {
         // Send message if it doesn't exist already above me
         chan.getIterableHistory().takeAsync(1).thenAccept((msgList) -> {
             if (msgList.size() == 0) return;
-            if (!msgList.get(0).getContentRaw().equals(msg)) return;
+            if (msgList.get(0).getContentRaw().equals(msg)) return;
             chan.sendMessage(msg).queue();
         });
     }

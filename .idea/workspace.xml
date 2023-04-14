@@ -12,7 +12,6 @@
     <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ Sticky manager almost completed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/StickyCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/StickyCommand.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/StickyManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/StickyManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -117,7 +116,7 @@
       <workItem from="1679158964670" duration="19060000" />
       <workItem from="1679275579844" duration="66839000" />
       <workItem from="1680375416353" duration="16832000" />
-      <workItem from="1680834765301" duration="18961000" />
+      <workItem from="1680834765301" duration="19386000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -259,7 +258,14 @@
       <option name="project" value="LOCAL" />
       <updated>1681355129281</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="+ Sticky manager almost completed">
+      <created>1681440603233</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1681440603233</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
