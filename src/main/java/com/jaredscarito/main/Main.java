@@ -156,5 +156,6 @@ public class Main {
                 blacklistManager,
                 stickyManager
         );
+        StickyManager.initializeStickyMessages();
     }
 }

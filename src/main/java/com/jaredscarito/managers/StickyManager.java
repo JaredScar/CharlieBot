@@ -2,7 +2,9 @@ package com.jaredscarito.managers;
 
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
+import com.jaredscarito.main.Main;
 import com.jaredscarito.models.ActionType;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -42,7 +44,33 @@ public class StickyManager extends ListenerAdapter {
         }
     }
 
-    public static void initializeStickyMessages() {}
+    public static void initializeStickyMessage(long channelId) {
+        JDA jda = Main.getInstance().getJDA();
+        TextChannel chan = jda.getTextChannelById(channelId);
+        if (chan == null) return;
+        String msg = "**__Stickied Message:__** " + API.getInstance().getStickyMessage(chan);
+        // Send message if it doesn't exist already above me
+        chan.getIterableHistory().takeAsync(1).thenAccept((msgList) -> {
+            if (msgList.size() == 0) return;
+            if (!msgList.get(0).getContentRaw().equals(msg)) return;
+            chan.sendMessage(msg).queue();
+        });
+    }
+    public static void initializeStickyMessages() {
+        HashMap<Long, String> stickyMessages = API.getInstance().getStickyMessages();
+        for (long channelId : stickyMessages.keySet()) {
+            JDA jda = Main.getInstance().getJDA();
+            TextChannel chan = jda.getTextChannelById(channelId);
+            if (chan == null) return;
+            // Send message if it doesn't exist already right above me
+            String msg = "**__Stickied Message:__** " + stickyMessages.get(channelId);
+            chan.getIterableHistory().takeAsync(1).thenAccept((msgList) -> {
+                if (msgList.size() == 0) return;
+                if (msgList.get(0).getContentRaw().equals(msg)) return;
+                chan.sendMessage(msg).queue();
+            });
+        }
+    }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent evt) {

@@ -38,6 +38,7 @@ public class StickyCommand {
                 break;
             case "remove":
                 API.getInstance().removeSticky(evt.getChannel().asTextChannel());
+                // TODO Remove sticky message from channel if it is at bottom
                 evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "The stickied message for this channel has been removed...!").build()).setEphemeral(true).queue();
                 break;
         }
