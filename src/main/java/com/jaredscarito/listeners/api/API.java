@@ -2,7 +2,7 @@ package com.jaredscarito.listeners.api;
 
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
-import com.mysql.cj.log.Log;
+import com.timvisee.yamlwrapper.ConfigurationSection;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -24,9 +24,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -40,6 +40,41 @@ public class API {
 
     public String getConfigValue(String path) {
         return Main.getInstance().getConfig().getString(path);
+    }
+
+    public TreeMap<String, String> getRules() {
+        List<String> titles = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections").getKeys();
+        HashMap<String, String> ruleList = new HashMap<>();
+        String ruleIdentifier = "1.1";
+        for (String title : titles) {
+            List<String> sectRuleIds = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections." + title).getKeys();
+            for (String sectRuleId : sectRuleIds) {
+                String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
+                String ruleIdentifierArg1 = ruleIdentifier.split("\\.")[1];
+                String sectRule = Main.getInstance().getConfig().getString("Rules.Sections." + title + "." + sectRuleId);
+                ruleList.put(ruleIdentifier, sectRule);
+                ruleIdentifier = ruleIdentifierArg0 + "." + (Integer.parseInt(ruleIdentifierArg1) + 1);
+            }
+            String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
+            ruleIdentifier = (Integer.parseInt(ruleIdentifierArg0) + 1) + ".1";
+        }
+        TreeMap rulesSorted = new TreeMap((Comparator<String>) (s1, s2) -> {
+            String firstRuleIdentifierArg0 = s1.split("\\.")[0];
+            String firstRuleIdentifierArg1 = s1.split("\\.")[1];
+            String secondRuleIdentifierArg0 = s2.split("\\.")[0];
+            String secondRuleIdentifierArg1 = s2.split("\\.")[1];
+            int firstRuleArg0 = Integer.parseInt(firstRuleIdentifierArg0);
+            int firstRuleArg1 = Integer.parseInt(firstRuleIdentifierArg1);
+            int secondRuleArg0 = Integer.parseInt(secondRuleIdentifierArg0);
+            int secondRuleArg1 = Integer.parseInt(secondRuleIdentifierArg1);
+            if (firstRuleArg0 > secondRuleArg0) return 1;
+            if (secondRuleArg0 > firstRuleArg0) return -1;
+            if (firstRuleArg1 > secondRuleArg1) return 1;
+            if (secondRuleArg1 > firstRuleArg1) return -1;
+            return 0;
+        });
+        rulesSorted.putAll(ruleList);
+        return rulesSorted;
     }
 
     public String getStickyMessage(TextChannel chan) {
