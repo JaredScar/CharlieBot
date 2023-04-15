@@ -154,7 +154,8 @@ public class Main {
                 lockdownManager,
                 banManager,
                 blacklistManager,
-                stickyManager
+                stickyManager,
+                new WarnManager()
         );
         StickyManager.initializeStickyMessages();
     }

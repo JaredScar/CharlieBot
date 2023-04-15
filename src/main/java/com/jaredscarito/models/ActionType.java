@@ -40,5 +40,10 @@ public enum ActionType {
      * Lockdown
      */
     LOCKDOWN_START,
-    LOCKDOWN_END
+    LOCKDOWN_END,
+    /**
+     * Warns
+     */
+    WARN_CREATE,
+    WARN_REMOVE
 }
