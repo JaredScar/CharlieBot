@@ -2,7 +2,7 @@ package com.jaredscarito.listeners.api;
 
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
-import com.timvisee.yamlwrapper.ConfigurationSection;
+import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -24,7 +24,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
@@ -40,6 +42,27 @@ public class API {
 
     public String getConfigValue(String path) {
         return Main.getInstance().getConfig().getString(path);
+    }
+
+    public void logPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `punishments` (`discord_id`, `datetime`, `ruleIds_broken`, `lastKnownName`, `lastKnownAvatar`, `punishment_type`, `punishment_length`, `reason`, `punished_by`, `punished_by_lastKnownName`, `punished_by_lastKnownAvatar`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            stmt.setLong(1, punishedMember.getIdLong());
+            stmt.setString(2, Instant.now(Clock.system(ZoneId.of("America/New_York"))).toString());
+            stmt.setString(3, String.join(", ", ruleIds_broken));
+            stmt.setString(4, punishedMember.getUser().getName() + "#" + punishedMember.getUser().getDiscriminator());
+            stmt.setString(5, punishedMember.getUser().getAvatarUrl());
+            stmt.setString(6, punishmentType.name());
+            stmt.setString(7, punishmentLength);
+            stmt.setString(8, reason);
+            stmt.setLong(9, punisher.getIdLong());
+            stmt.setString(10, punisher.getUser().getName() + "#" + punisher.getUser().getDiscriminator());
+            stmt.setString(11, punisher.getUser().getAvatarUrl());
+            stmt.execute();
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
     }
 
     public TreeMap<String, String> getRules() {
@@ -312,7 +335,7 @@ public class API {
 
     public MessageCreateAction createMainTicketMessage(TextChannel chan) {
         EmbedBuilder eb = new EmbedBuilder();
-        StringSelectMenu.Builder selectMenuBuilder = StringSelectMenu.create("ticket");
+        StringSelectMenu.Builder selectMenuBuilder = StringSelectMenu.create("ticketSelectMenu");
         selectMenuBuilder.setPlaceholder(getConfigValue("Bot.Tickets.Title"));
         List<String> options = Main.getInstance().getConfig().getKeys("Bot.Tickets.Ticket_Options");
         for (String opt : options) {

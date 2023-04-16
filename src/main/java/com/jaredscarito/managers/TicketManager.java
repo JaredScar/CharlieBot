@@ -97,6 +97,7 @@ public class TicketManager extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent evt) {
         if (evt.getMember() == null) return;
+        if (!evt.getId().equals("ticketSelectMenu")) return;
         List<SelectOption> selectedOpts = evt.getSelectedOptions();
         for (SelectOption opt : selectedOpts) {
             // Check if value exists

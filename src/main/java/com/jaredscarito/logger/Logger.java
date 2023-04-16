@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 public class Logger {
@@ -25,6 +26,49 @@ public class Logger {
         formatter.setTimeZone(TimeZone.getTimeZone("America/New_York"));
 
         return (formatter.format(date));
+    }
+    public static void log(ActionType actionType, Member performedBy, Member performedOn, List<String> brokenRuleIds, String reason) {
+        File actionLog = new File("logs/actions.txt");
+        if (!actionLog.exists()) {
+            try {
+                actionLog.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (actionLog.exists()) {
+            try {
+                FileWriter writer = new FileWriter(actionLog, true);
+                writer.write("[" + getCurrentDatetimeString() + "] " + actionType.name() + ":");
+                writer.write("\nPerformed by: " + performedBy.getUser().getName() + "#" +
+                        performedBy.getUser().getDiscriminator() + "");
+                writer.write("\nPerformed on: " + performedOn.getUser().getName() + "#" + performedOn.getUser().getDiscriminator());
+                writer.write("\nBroken Rules: " + String.join(", ", brokenRuleIds));
+                if (reason.length() > 0)
+                    writer.write("\nReason: " + reason + "");
+                writer.write("\n----------------------\n");
+                writer.flush();
+                writer.close();
+            } catch (IOException e) {
+                Logger.log(e);
+                e.printStackTrace();
+            }
+        }
+        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
+        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
+        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
+        if (guild == null) return;
+        TextChannel logChan = guild.getTextChannelById(logChannel);
+        if (logChan == null) return;
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
+        eb.setTitle(actionType.name());
+        eb.addField("Performed By", performedBy.getAsMention(), true);
+        eb.addField("Performed On", performedOn.getAsMention(), true);
+        eb.addField("Rules Broken", String.join(", ", brokenRuleIds), false);
+        if (reason.length() > 0)
+            eb.addField("Reason", reason, false);
+        logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, String channelName, String reason) {
         File actionLog = new File("logs/actions.txt");

@@ -20,6 +20,21 @@ CREATE TABLE `points` (
     `points` INT(128) NOT NULL
 );
 
+CREATE TABLE `punishments` (
+    `pid` INT(128) AUTO_INCREMENT PRIMARY KEY,
+    `discord_id` BIGINT(128),
+    `datetime` DATETIME,
+    `ruleIds_broken` VARCHAR(255),
+    `lastKnownName` VARCHAR(128) NOT NULL,
+    `lastKnownAvatar` VARCHAR(255) NOT NULL,
+    `punishment_type` VARCHAR(128),
+    `punishment_length` VARCHAR(128) DEFAULT '0',
+    `reason` TEXT(1024),
+    `punished_by` BIGINT(128),
+    `punished_by_lastKnownName` VARCHAR(128) NOT NULL,
+    `punished_by_lastKnownAvatar` VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE `ranking` (
     `discord_id` BIGINT(128) PRIMARY KEY,
     `lastKnownName` VARCHAR(128) NOT NULL,
