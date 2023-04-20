@@ -44,6 +44,20 @@ public class API {
         return Main.getInstance().getConfig().getString(path);
     }
 
+    public void notifyPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
+        TextChannel punishmentChannel = punisher.getGuild().getTextChannelById(Main.getInstance().getConfig().getString("Bot.Punishment_Announce_Channel"));
+        if (punishmentChannel == null) return;
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle(punishmentType.name());
+        eb.addField("Member Punished:", punishedMember.getAsMention(), true);
+        eb.addField("Punished By:", punisher.getAsMention(), true);
+        eb.addField("Rules Broken:", String.join(", ", ruleIds_broken), false);
+        eb.addField("Reason:", reason, false);
+        eb.setAuthor(punisher.getUser().getName() + "#" + punisher.getUser().getDiscriminator(), punisher.getUser().getAvatarUrl());
+        eb.setThumbnail(punishedMember.getAvatarUrl());
+        punishmentChannel.sendMessageEmbeds(eb.build()).queue();
+    }
+
     public void logPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {

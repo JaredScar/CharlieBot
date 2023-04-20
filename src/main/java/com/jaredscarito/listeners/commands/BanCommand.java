@@ -1,5 +1,6 @@
 package com.jaredscarito.listeners.commands;
 
+import com.jaredscarito.listeners.api.API;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -9,6 +10,8 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+
+import java.util.TreeMap;
 
 public class BanCommand {
     public static void invoke(SlashCommandInteractionEvent evt) {
@@ -41,5 +44,16 @@ public class BanCommand {
                 .addComponents(ActionRow.of(selectionMenu), ActionRow.of(numInput), ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();
+        StringSelectMenu.Builder builder = StringSelectMenu.create("banUserRuleSelect|" + user.getId()).setMinValues(1);
+        TreeMap<String, String> ruleList = API.getInstance().getRules();
+        for (String ruleId : ruleList.keySet()) {
+            String rule = ruleList.get(ruleId);
+            if (rule.length() > 100) {
+                rule = rule.substring(0, 100);
+            }
+            builder.addOption(ruleId, ruleId, rule);
+        }
+        StringSelectMenu ruleSelect = builder.build();
+        evt.reply("").addActionRow(ruleSelect).setEphemeral(true).queue();
     }
 }
