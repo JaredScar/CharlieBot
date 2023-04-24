@@ -18,12 +18,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class ManagerUtils {
     private static HashMap<String, List<String>> rulesSelected = new HashMap<>();
 
     public static HashMap<String, List<String>> getRulesSelected() {
         return rulesSelected;
+    }
+
+    public static TimeUnit getTimeUnitFromString(String str) {
+        switch (str.toLowerCase()) {
+            case "second":
+                return TimeUnit.SECONDS;
+            case "minute":
+                return TimeUnit.MINUTES;
+            case "hour":
+                return TimeUnit.HOURS;
+            case "day":
+                return TimeUnit.DAYS;
+        }
+        return TimeUnit.DAYS;
     }
 
     public static void handleStringSelectMenu(StringSelectInteractionEvent evt, String componentId, String punishmentType) {

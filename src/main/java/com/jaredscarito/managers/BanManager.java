@@ -37,7 +37,7 @@ public class BanManager extends ListenerAdapter {
         if (modMap == null || durationType == null || durationFilter == null) return;
         String reason = modMap.getAsString();
         String timeUnit = durationType.getAsString();
-        TimeUnit unit = this.getTimeUnitFromString(timeUnit);
+        TimeUnit unit = ManagerUtils.getTimeUnitFromString(timeUnit);
         if (evt.getGuild() == null) return;
         Member banUser = evt.getGuild().getMemberById(userId);
         if (banUser == null) return;
@@ -98,18 +98,5 @@ public class BanManager extends ListenerAdapter {
                 .addComponents(ActionRow.of(selectionMenu), ActionRow.of(numInput), ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();
-    }
-    private TimeUnit getTimeUnitFromString(String str) {
-        switch (str.toLowerCase()) {
-            case "second":
-                return TimeUnit.SECONDS;
-            case "minute":
-                return TimeUnit.MINUTES;
-            case "hour":
-                return TimeUnit.HOURS;
-            case "day":
-                return TimeUnit.DAYS;
-        }
-        return TimeUnit.DAYS;
     }
 }

@@ -1,15 +1,18 @@
 package com.jaredscarito.listeners.commands;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
+import com.jaredscarito.managers.ManagerUtils;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+
+import java.awt.*;
 
 public class MuteCommand {
     public static void invoke(SlashCommandInteractionEvent evt) {
-        Guild guild = evt.getGuild();
-        Member mem = evt.getMember();
-        if (guild == null) return;
-        if (mem == null) return;
-        if (mem.getUser().isBot()) return;
+        if (evt.getSubcommandName() == null) return;
+        if (evt.getSubcommandName().equalsIgnoreCase("remove")) {
+            // They want to remove the mute from the user
+            // TODO
+        }
+        if (!evt.getSubcommandName().equalsIgnoreCase("add") && !evt.getSubcommandName().equalsIgnoreCase("edit")) return;
+        ManagerUtils.handleCommandInteraction(evt, "muteUser", "Mute", Color.PINK);
     }
 }

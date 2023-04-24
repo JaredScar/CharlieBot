@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class KickManager extends ListenerAdapter {
@@ -31,7 +32,9 @@ public class KickManager extends ListenerAdapter {
         if (evt.getGuild() == null) return;
         Member kickUser = evt.getGuild().getMemberById(userId);
         if (kickUser == null) return;
-        List<String> ruleIds = new ArrayList<>(Arrays.asList(modelIdArgs).subList(2, modelIdArgs.length));
+        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
+        List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        if (ruleIds == null) return;
         String fullUserName = kickUser.getUser().getName() + "#" + kickUser.getUser().getDiscriminator();
         evt.getGuild().kick(kickUser).reason(reason).queue((v) -> {
             API.getInstance().logPunishment(kickUser, evt.getMember(), PunishmentType.WARN, "", ruleIds, reason);
