@@ -9,13 +9,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ More layout to know what needs to be done">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/KickCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/KickCommand.java" afterDir="false" />
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ Update">
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/WarnCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/WarnCommand.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/KickManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/KickManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -121,7 +116,7 @@
       <workItem from="1680375416353" duration="16832000" />
       <workItem from="1680834765301" duration="22264000" />
       <workItem from="1681573408966" duration="52150000" />
-      <workItem from="1683996123696" duration="6349000" />
+      <workItem from="1683996123696" duration="6368000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -340,14 +335,20 @@
       <option name="project" value="LOCAL" />
       <updated>1682907154782</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="+ Update">
+      <created>1684117044163</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1684117044163</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="+ TicketManager is closer to being done&#10;+ Got save method ready for making HTML file containing data from tickets&#10;+ Properly saving the messageID to config" />
     <MESSAGE value="+ More TicketManager functionality&#10;+ Full ticket functionality is hopefully pretty close to completion" />
     <MESSAGE value="+ TicketManager has lock and unlock functionality working&#10;+ Fixed line breaks by replacing \n with line.separator" />
     <MESSAGE value="+ Add functionality to Logger" />
@@ -372,6 +373,7 @@
     <MESSAGE value="+ Pushing most recent changes" />
     <MESSAGE value="+ Implement Blacklist code but unfinished" />
     <MESSAGE value="+ More layout to know what needs to be done" />
-    <option name="LAST_COMMIT_MESSAGE" value="+ More layout to know what needs to be done" />
+    <MESSAGE value="+ Update" />
+    <option name="LAST_COMMIT_MESSAGE" value="+ Update" />
   </component>
 </project>

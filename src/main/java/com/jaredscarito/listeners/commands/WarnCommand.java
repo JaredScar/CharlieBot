@@ -11,7 +11,7 @@ public class WarnCommand {
         if (evt.getSubcommandName() == null) return;
         if (evt.getSubcommandName().equalsIgnoreCase("remove")) {
             // They want to remove the warn from the user
-            ManagerUtils.handleRemovePunishment(PunishmentType.WARN);
+            ManagerUtils.handleRemovePunishment(evt, PunishmentType.WARN);
         }
         if (!evt.getSubcommandName().equalsIgnoreCase("add")) return;
         ManagerUtils.handleCommandInteraction(evt, "warnUser", "Warn", Color.YELLOW);
