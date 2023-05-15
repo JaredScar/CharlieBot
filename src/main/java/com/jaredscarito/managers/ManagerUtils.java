@@ -1,6 +1,7 @@
 package com.jaredscarito.managers;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -12,6 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -40,6 +42,33 @@ public class ManagerUtils {
         }
         return TimeUnit.DAYS;
     }
+
+    /**
+     * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
+     * @param evt
+     * @param punishmentType
+     */
+    public static void handleRemovePunishment(SlashCommandInteractionEvent evt, PunishmentType punishmentType) {
+        Member mem = evt.getMember();
+        if (mem == null) return;
+        if (mem.getUser().isBot()) return;
+        OptionMapping opt = evt.getOption("member");
+        if (opt == null) return;
+        if (opt.getAsMember() == null) return;
+        User user = opt.getAsMember().getUser();
+        String pName = punishmentType.name().toLowerCase();
+        String pNameAdjusted = pName.toUpperCase().charAt(0) + pName.substring(1);
+        Modal.Builder builder = Modal.create(pName + "Remove", "Remove a " + pNameAdjusted + " punishment from history");
+        Modal modal = builder.build();
+    }
+
+    /**
+     * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
+     * If they provide punishmentType as null, we should assume all punishments will be removed from the user's history
+     * @param evt
+     * @param punishmentType
+     */
+    public static void clearPunishments(SlashCommandInteractionEvent evt, PunishmentType punishmentType) {}
 
     public static void handleStringSelectMenu(StringSelectInteractionEvent evt, String componentId, String punishmentType) {
         List<SelectOption> optionsSelected = evt.getSelectedOptions();

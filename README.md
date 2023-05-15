@@ -24,9 +24,13 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 ### Commands
 
 #### Warn
+`/warn add [user]`
 
+`/warn remove [user]`
 #### History
+`/history view [user]`
 
+`/history clear [user]`
 #### Ticket
 `/ticket add [user]`
 
