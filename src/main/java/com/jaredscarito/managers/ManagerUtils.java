@@ -1,25 +1,35 @@
 package com.jaredscarito.managers;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
+import com.jaredscarito.main.Main;
 import com.jaredscarito.models.PunishmentType;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.List;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 public class ManagerUtils {
@@ -43,8 +53,28 @@ public class ManagerUtils {
         return TimeUnit.DAYS;
     }
 
+    @AllArgsConstructor
+    private static class PunishmentData {
+        @Getter
+        @Setter
+        private int pid;
+        @Getter
+        @Setter
+        private String datetime;
+        @Getter
+        @Setter
+        private String rulesBroken;
+        @Getter
+        @Setter
+        private String punishmentLength;
+        @Getter
+        @Setter
+        private String punished_by_lastKnownName;
+        @Getter
+        @Setter
+        private String reason;
+    }
     /**
-     * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
      * @param evt
      * @param punishmentType
      */
@@ -58,9 +88,92 @@ public class ManagerUtils {
         User user = opt.getAsMember().getUser();
         String pName = punishmentType.name().toLowerCase();
         String pNameAdjusted = pName.toUpperCase().charAt(0) + pName.substring(1);
-        Modal.Builder builder = Modal.create(pName + "Remove", "Remove a " + pNameAdjusted + " punishment from history");
-        Modal modal = builder.build();
+        HashMap<Member, List<PunishmentData>> punishmentData = new HashMap<>();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `discord_id` = ?");
+            prep.setString(1, pName.toUpperCase());
+            prep.setLong(2, opt.getAsMember().getIdLong());
+            prep.execute();
+            ResultSet res = prep.getResultSet();
+            while (res.next()) {
+                int pid = res.getInt("pid");
+                String datetime = res.getString("datetime");
+                String rulesBroken = res.getString("ruleIds_broken");
+                String punishmentLength = res.getString("punishment_length");
+                String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
+                String reason = res.getString("reason");
+                PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
+                punishmentData.computeIfAbsent(opt.getAsMember(), v -> new ArrayList<>()).add(pData);
+            }
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        List<PunishmentData> pDatas = punishmentData.get(opt.getAsMember());
+        if (pDatas.size() > 0) {
+            // It has actual PunishmentData
+            StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(pName + "Remove" + "|" + opt.getAsMember().getId());
+            for (PunishmentData pd : pDatas) {
+                menuBuilder.addOption(pd.getPid() + " - " + pd.getReason(), pd.getPid() + "");
+            }
+            StringSelectMenu menu = menuBuilder.build();
+            evt.reply("Remove a " + pNameAdjusted + " punishment from "
+                    + opt.getAsMember().getAsMention() + " history").setEphemeral(true).addActionRow(menu).queue();
+            punishmentData.remove(opt.getAsMember());
+        } else {
+            // No PunishmentData, notify them...
+            API.getInstance().sendErrorMessage(evt, opt.getAsMember(), "Error: No punishments found", "This member does not have any of these types of punishments...");
+        }
     }
+    public static void openModalWithPunishmentData(StringSelectInteractionEvent evt, int pid, Member beingPunished, PunishmentType punishmentType) {
+        String pName = punishmentType.name().toLowerCase();
+        String pNameAdjusted = pName.toUpperCase().charAt(0) + pName.substring(1);
+        Modal.Builder builder = Modal.create(pName + "Remove" + "|" + beingPunished.getId(), "Remove a " + pNameAdjusted + " punishment from history");
+        HashMap<Member, List<PunishmentData>> punishmentData = new HashMap<>();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        try {
+            PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `pid` = ?");
+            prep.setString(1, pName.toUpperCase());
+            prep.setInt(2, pid);
+            prep.execute();
+            ResultSet res = prep.getResultSet();
+            while (res.next()) {
+                String datetime = res.getString("datetime");
+                String rulesBroken = res.getString("ruleIds_broken");
+                String punishmentLength = res.getString("punishment_length");
+                String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
+                String reason = res.getString("reason");
+                PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
+                punishmentData.computeIfAbsent(beingPunished, v -> new ArrayList<>()).add(pData);
+            }
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+        }
+        List<PunishmentData> pDatas = punishmentData.get(beingPunished);
+        Optional<PunishmentData> optionalPd = pDatas.stream().filter((pd) -> pd.getPid() == pid).findFirst();
+        if (optionalPd.isPresent()) {
+            // It has actual PunishmentData
+            PunishmentData pData = optionalPd.get();
+            TextInput datetime = TextInput.create("datetime", "Datetime", TextInputStyle.SHORT).setValue(pData.getDatetime()).build();
+            TextInput rulesBroken = TextInput.create("rulesBroken", "Rules Broke", TextInputStyle.PARAGRAPH).setValue(pData.getRulesBroken()).build();
+            TextInput punishmentLength = TextInput.create("punishmentLength", "Punishment Length", TextInputStyle.SHORT).setValue(pData.getPunishmentLength()).build();
+            TextInput punished_by_lastKnownName = TextInput.create("punishedBy", "Punished By", TextInputStyle.SHORT).setValue(pData.getPunished_by_lastKnownName()).build();
+            TextInput reason = TextInput.create("", "", TextInputStyle.PARAGRAPH).build();
+            builder.addActionRow(datetime.asDisabled(), rulesBroken.asDisabled(), punishmentLength.asDisabled(), punished_by_lastKnownName.asDisabled(), reason.asDisabled());
+            evt.replyModal(builder.build()).queue();
+        } else {
+            // No PunishmentData, notify them...
+            API.getInstance().sendErrorMessage(evt, beingPunished, "Error: No punishments found", "This member does not have any of these types of punishments...");
+        }
+    }
+
+    /**
+     * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
+     * @param evt
+     */
+    public static void handleModalPunishmentRemoval(ModalInteractionEvent evt, int pid) {}
 
     /**
      * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
