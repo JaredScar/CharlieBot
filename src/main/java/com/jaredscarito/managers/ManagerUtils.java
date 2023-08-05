@@ -28,8 +28,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class ManagerUtils {
@@ -115,7 +115,7 @@ public class ManagerUtils {
             // It has actual PunishmentData
             StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(pName + "Remove" + "|" + opt.getAsMember().getId());
             for (PunishmentData pd : pDatas) {
-                menuBuilder.addOption(pd.getPid() + " - " + pd.getReason(), pd.getPid() + "");
+                menuBuilder.addOption(pd.getPid() + " - " + pd.getReason(), String.valueOf(pd.getPid()));
             }
             StringSelectMenu menu = menuBuilder.build();
             evt.reply("Remove a " + pNameAdjusted + " punishment from "
@@ -129,7 +129,7 @@ public class ManagerUtils {
     public static void openModalWithPunishmentData(StringSelectInteractionEvent evt, int pid, Member beingPunished, PunishmentType punishmentType) {
         String pName = punishmentType.name().toLowerCase();
         String pNameAdjusted = pName.toUpperCase().charAt(0) + pName.substring(1);
-        Modal.Builder builder = Modal.create(pName + "Remove" + "|" + beingPunished.getId(), "Remove a " + pNameAdjusted + " punishment from history");
+        Modal.Builder builder = Modal.create(pName + "Remove" + "|" + beingPunished.getId() + "|" + pid, "Remove a " + pNameAdjusted + " punishment from history");
         HashMap<Member, List<PunishmentData>> punishmentData = new HashMap<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {
@@ -172,6 +172,7 @@ public class ManagerUtils {
     /**
      * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
      * @param evt
+     * @param pid
      */
     public static void handleModalPunishmentRemoval(ModalInteractionEvent evt, int pid) {}
 
