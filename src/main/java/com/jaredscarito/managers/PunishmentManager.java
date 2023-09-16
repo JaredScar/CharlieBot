@@ -51,6 +51,12 @@ public class PunishmentManager extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(ModalInteractionEvent evt) {
-        ManagerUtils.handleModalPunishmentRemoval(evt, 0);
+        String modalId = evt.getModalId();
+        String[] modalArgs = modalId.split("\\|");
+        if (!modalId.contains("Remove")) return; // Not a removal modal... Skip
+        if (modalArgs.length < 3) return; // Not enough arguments to be a punishment
+        String pid = modalArgs[2];
+        if (!this.validInt(pid)) return; // Not a valid PID...
+        ManagerUtils.handleModalPunishmentRemoval(evt, Integer.parseInt(pid));
     }
 }

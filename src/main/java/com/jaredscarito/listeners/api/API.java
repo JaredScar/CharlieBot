@@ -44,6 +44,14 @@ public class API {
         return Main.getInstance().getConfig().getString(path);
     }
 
+    public PunishmentType getPunishmentTypeByString(String s) {
+        for (PunishmentType pt : PunishmentType.values()) {
+            if (pt.name().equalsIgnoreCase(s))
+                return pt;
+        }
+        return null;
+    }
+
     public void notifyPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
         TextChannel punishmentChannel = punisher.getGuild().getTextChannelById(Main.getInstance().getConfig().getString("Bot.Punishment_Announce_Channel"));
         if (punishmentChannel == null) return;

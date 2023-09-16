@@ -174,7 +174,31 @@ public class ManagerUtils {
      * @param evt
      * @param pid
      */
-    public static void handleModalPunishmentRemoval(ModalInteractionEvent evt, int pid) {}
+    public static void handleModalPunishmentRemoval(ModalInteractionEvent evt, int pid) {
+        String modalId = evt.getModalId();
+        String[] modalArgs = modalId.split("\\|");
+        String removalType = modalArgs[0].replace("Remove", "");
+        String punishedId = modalArgs[1];
+        boolean failed = false;
+        try {
+            removePunishment(pid);
+        } catch (SQLException e) {
+            Logger.log(e);
+            failed = true;
+        }
+        if (!failed) {
+            // It was successful, we need to respond that it was good
+            // TODO We also need to remove the actions associated to the punishment...
+        }
+    }
+
+    public static void removePunishment(int pid) throws SQLException {
+        String sql = "DELETE FROM `punishments` WHERE `pid` = ?";
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        PreparedStatement prep = conn.prepareStatement(sql);
+        prep.setInt(1, pid);
+        prep.execute();
+    }
 
     /**
      * TODO When reverting punishments, we need to make sure we also remove the actions associated to the punishment if they exist...
