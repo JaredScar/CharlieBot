@@ -103,7 +103,7 @@ public class API {
             String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
             ruleIdentifier = (Integer.parseInt(ruleIdentifierArg0) + 1) + ".1";
         }
-        TreeMap rulesSorted = new TreeMap((Comparator<String>) (s1, s2) -> {
+        TreeMap<String, String> rulesSorted = new TreeMap<>((s1, s2) -> {
             String firstRuleIdentifierArg0 = s1.split("\\.")[0];
             String firstRuleIdentifierArg1 = s1.split("\\.")[1];
             String secondRuleIdentifierArg0 = s2.split("\\.")[0];
@@ -114,9 +114,7 @@ public class API {
             int secondRuleArg1 = Integer.parseInt(secondRuleIdentifierArg1);
             if (firstRuleArg0 > secondRuleArg0) return 1;
             if (secondRuleArg0 > firstRuleArg0) return -1;
-            if (firstRuleArg1 > secondRuleArg1) return 1;
-            if (secondRuleArg1 > firstRuleArg1) return -1;
-            return 0;
+            return Integer.compare(firstRuleArg1, secondRuleArg1);
         });
         rulesSorted.putAll(ruleList);
         return rulesSorted;
@@ -275,9 +273,6 @@ public class API {
         }
         return 1;
     }
-    public void gamble(SlashCommandInteractionEvent evt, Member mem, int points) {}
-    public void lockdownEnable(TextChannel chan) {}
-    public void lockdownDisable(TextChannel chan) {}
     public boolean addSticky(TextChannel chan, String msg) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         try {
