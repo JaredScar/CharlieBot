@@ -44,7 +44,7 @@ public class BlacklistManager extends ListenerAdapter {
         String fullUserName = blacklistUser.getUser().getName() + "#" + blacklistUser.getUser().getDiscriminator();
         // Actually blacklist them
         evt.getGuild().ban(blacklistUser, Integer.parseInt(durationFilter.getAsString()), unit).reason(reason).queue((v) -> {
-            Logger.log(ActionType.MUTE_CREATE, evt.getMember(), blacklistUser, reason);
+            Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
             evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
         });
     }
