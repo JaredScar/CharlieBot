@@ -9,8 +9,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="+ Get ready for more commands">
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Current changes to remote">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/BanManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/BanManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/KickManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/KickManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -149,6 +154,7 @@
       <workItem from="1705717886611" duration="5000" />
       <workItem from="1714269553702" duration="9000" />
       <workItem from="1714269568707" duration="335000" />
+      <workItem from="1714270551099" duration="6308000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -412,14 +418,21 @@
       <option name="project" value="LOCAL" />
       <updated>1704592853967</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="Current changes to remote">
+      <option name="closed" value="true" />
+      <created>1714271398352</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1714271398352</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="+ Ticket commands and manager pretty much completely finished" />
     <MESSAGE value="+ SupportMessage should be done" />
     <MESSAGE value="+ Started work on SelfPromotionMessage" />
     <MESSAGE value="+ Finished PointsMessage&#10;+ Finished RankMessage&#10;+ Finished SelfPromotionMessage" />
@@ -444,6 +457,7 @@
     <MESSAGE value="+ More code additions" />
     <MESSAGE value="+ Most recent changes added" />
     <MESSAGE value="+ Get ready for more commands" />
-    <option name="LAST_COMMIT_MESSAGE" value="+ Get ready for more commands" />
+    <MESSAGE value="Current changes to remote" />
+    <option name="LAST_COMMIT_MESSAGE" value="Current changes to remote" />
   </component>
 </project>

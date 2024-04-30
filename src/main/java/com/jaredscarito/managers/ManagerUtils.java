@@ -33,11 +33,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class ManagerUtils {
+    @Getter
     private static HashMap<String, List<String>> rulesSelected = new HashMap<>();
-
-    public static HashMap<String, List<String>> getRulesSelected() {
-        return rulesSelected;
-    }
 
     public static TimeUnit getTimeUnitFromString(String str) {
         switch (str.toLowerCase()) {
@@ -252,19 +249,21 @@ public class ManagerUtils {
         });
         for (SelectOption selectOption : currentOptList) {
             if (rulesBrokenList.contains(selectOption.getValue())) {
-                builder.addOption(selectOption.getLabel(), selectOption.getValue(), Emoji.fromUnicode("✅"));
+                builder.addOption(selectOption.getLabel(), selectOption.getValue(), selectOption.getDescription(), Emoji.fromUnicode("✅"));
                 removals.add(selectOption);
             }
         }
         currentOptList.removeAll(removals);
         for (SelectOption selectOption : currentOptList) {
-            builder.addOption(selectOption.getLabel(), selectOption.getValue());
+            builder.addOption(selectOption.getLabel(), selectOption.getValue(), selectOption.getDescription() == null ? "" : selectOption.getDescription());
         }
         EmbedBuilder eb = new EmbedBuilder();
         MessageEmbed embed = evt.getMessage().getEmbeds().get(0);
         eb.setTitle(embed.getTitle());
-        eb.setFooter(embed.getFooter().getText(), embed.getFooter().getIconUrl());
-        eb.setThumbnail(embed.getThumbnail().getUrl());
+        if (embed.getFooter() != null)
+            eb.setFooter(embed.getFooter().getText(), embed.getFooter().getIconUrl());
+        if (embed.getThumbnail() != null)
+            eb.setThumbnail(embed.getThumbnail().getUrl());
         eb.addField("Rules broken:", String.join(", ", rulesBrokenList), false);
         evt.editSelectMenu(builder.build()).and(evt.getHook().editOriginalEmbeds((eb.build()))).queue();
     }

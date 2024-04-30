@@ -16,9 +16,9 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 | Sticky      |     ✅      |    ✅    |
 | Lockdown    |     ✅      |    ❌    |
 | Mute        |     ❌      |    ❌    |
-| Kick        |     ✅      |    ❌    |
+| Kick        |     ✅      |    ✅    |
 | Blacklist   |     ❌      |    ❌    |
-| Ban         |     ❌      |    ❌    |
+| Ban         |     ✅      |    ✅    |
 | Warn        |     ❌      |    ❌    |
 | History     |     ❌      |    ❌    |
 ### Commands

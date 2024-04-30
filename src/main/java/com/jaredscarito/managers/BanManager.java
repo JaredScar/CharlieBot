@@ -3,6 +3,7 @@ package com.jaredscarito.managers;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.models.ActionType;
+import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -32,18 +33,17 @@ public class BanManager extends ListenerAdapter {
         if (!isbanUser.equals("banUser")) return;
         String userId = modelIdArgs[1];
         ModalMapping modMap = evt.getValue("reason");
-        ModalMapping durationFilter = evt.getValue("duration");
-        ModalMapping durationType = evt.getValue("timeUnit");
-        if (modMap == null || durationType == null || durationFilter == null) return;
+        if (modMap == null) return;
         String reason = modMap.getAsString();
-        String timeUnit = durationType.getAsString();
-        TimeUnit unit = ManagerUtils.getTimeUnitFromString(timeUnit);
         if (evt.getGuild() == null) return;
         Member banUser = evt.getGuild().getMemberById(userId);
         if (banUser == null) return;
         String fullUserName = banUser.getUser().getName() + "#" + banUser.getUser().getDiscriminator();
-        evt.getGuild().ban(banUser, Integer.parseInt(durationFilter.getAsString()), unit).reason(reason).queue((v) -> {
-            Logger.log(ActionType.BAN_CREATE, evt.getMember(), banUser, reason);
+        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
+        List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        API.getInstance().logPunishment(banUser, evt.getMember(), PunishmentType.BAN, "", ruleIds, reason);
+        Logger.log(ActionType.BAN_CREATE, evt.getMember(), banUser, reason);
+        evt.getGuild().ban(banUser, 168, TimeUnit.HOURS).reason(reason).queue((v) -> {
             evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been banned...").build()).setEphemeral(true).queue();
         });
     }
@@ -74,7 +74,7 @@ public class BanManager extends ListenerAdapter {
         if (mem == null) return;
         User user = mem.getUser();
         HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> rulesBroken = rulesSelected.get(evt.getComponentId().replace("banUserRuleSelectConfirm", "warnUser"));
+        List<String> rulesBroken = rulesSelected.get(evt.getComponentId().replace("banUserRuleSelectConfirm", "banUser"));
         if (rulesBroken == null) return;
         TextInput inp = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Reason for ban")
@@ -82,10 +82,7 @@ public class BanManager extends ListenerAdapter {
                 .setMaxLength(1024)
                 .setRequired(true)
                 .build();
-        TextInput numInput = TextInput.create("duration", "Duration", TextInputStyle.SHORT)
-                .setPlaceholder("1")
-                .setMinLength(0)
-                .setMaxLength(999).setRequired(true).build();
+        /** /
         StringSelectMenu selectionMenu = StringSelectMenu.create("timeUnit")
                 .addOption("Forever", "Forever")
                 .addOption("Seconds", "second")
@@ -93,9 +90,10 @@ public class BanManager extends ListenerAdapter {
                 .addOption("Hours", "hour")
                 .addOption("Days", "day")
                 .build();
+        /**/
         Modal modal = Modal.create("banUser"
-                        + "|" + user.getId(), "Ban User " + user.getName() + "#" + user.getDiscriminator())
-                .addComponents(ActionRow.of(selectionMenu), ActionRow.of(numInput), ActionRow.of(inp))
+                        + "|" + user.getId() + "|" + punisher.getId(), "Ban User " + user.getName() + "#" + user.getDiscriminator())
+                .addComponents(ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();
     }
