@@ -155,8 +155,7 @@ public class Main {
                 banManager,
                 blacklistManager,
                 stickyManager,
-                new WarnManager(),
-                new MuteManager()
+                new WarnManager()
         );
         StickyManager.initializeStickyMessages();
     }

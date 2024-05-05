@@ -37,20 +37,15 @@ public class MuteManager extends ListenerAdapter {
         String userId = modelIdArgs[1];
         ModalMapping modMap = evt.getValue("reason");
         ModalMapping durationFilter = evt.getValue("duration");
-        ModalMapping durationType = evt.getValue("timeUnit");
-        if (modMap == null || durationType == null || durationFilter == null) return;
+        if (modMap == null || durationFilter == null) return;
         String reason = modMap.getAsString();
-        String timeUnit = durationType.getAsString();
-        TimeUnit unit = ManagerUtils.getTimeUnitFromString(timeUnit);
         if (evt.getGuild() == null) return;
         Member muteUser = evt.getGuild().getMemberById(userId);
         if (muteUser == null) return;
         String fullUserName = muteUser.getUser().getName() + "#" + muteUser.getUser().getDiscriminator();
         // TODO Actually mute them
-        evt.getGuild().ban(muteUser, Integer.parseInt(durationFilter.getAsString()), unit).reason(reason).queue((v) -> {
-            Logger.log(ActionType.MUTE_CREATE, evt.getMember(), muteUser, reason);
-            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
-        });
+        Logger.log(ActionType.MUTE_CREATE, evt.getMember(), muteUser, reason);
+        evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
     }
 
     @Override
@@ -91,16 +86,9 @@ public class MuteManager extends ListenerAdapter {
                 .setPlaceholder("1")
                 .setMinLength(0)
                 .setMaxLength(999).setRequired(true).build();
-        StringSelectMenu selectionMenu = StringSelectMenu.create("timeUnit")
-                .addOption("Forever", "Forever")
-                .addOption("Seconds", "second")
-                .addOption("Minutes", "minute")
-                .addOption("Hours", "hour")
-                .addOption("Days", "day")
-                .build();
         Modal modal = Modal.create("muteUser"
                         + "|" + user.getId(), "Mute User " + user.getName() + "#" + user.getDiscriminator())
-                .addComponents(ActionRow.of(selectionMenu), ActionRow.of(numInput), ActionRow.of(inp))
+                .addComponents(ActionRow.of(numInput), ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();
     }

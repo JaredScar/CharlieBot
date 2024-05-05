@@ -4,6 +4,7 @@ import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.models.ActionType;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -32,21 +33,25 @@ public class BlacklistManager extends ListenerAdapter {
         if (!isblacklistUser.equals("blacklistUser")) return;
         String userId = modelIdArgs[1];
         ModalMapping modMap = evt.getValue("reason");
-        ModalMapping durationFilter = evt.getValue("duration");
-        ModalMapping durationType = evt.getValue("timeUnit");
-        if (modMap == null || durationType == null || durationFilter == null) return;
+        if (modMap == null) return;
         String reason = modMap.getAsString();
-        String timeUnit = durationType.getAsString();
-        TimeUnit unit = ManagerUtils.getTimeUnitFromString(timeUnit);
         if (evt.getGuild() == null) return;
         Member blacklistUser = evt.getGuild().getMemberById(userId);
         if (blacklistUser == null) return;
         String fullUserName = blacklistUser.getUser().getName() + "#" + blacklistUser.getUser().getDiscriminator();
         // Actually blacklist them
-        evt.getGuild().ban(blacklistUser, Integer.parseInt(durationFilter.getAsString()), unit).reason(reason).queue((v) -> {
-            Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
-            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
-        });
+        blacklistMember(blacklistUser);
+        Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
+        evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been blacklisted...").build()).setEphemeral(true).queue();
+    }
+
+    private void blacklistMember(Member mem) {
+        for (Role r : mem.getRoles()) {
+            mem.getGuild().removeRoleFromMember(mem, r).queue();
+        }
+        Role role = mem.getGuild().getRoleById(API.getInstance().getConfigValue("Bot.Commands.Blacklist.Blacklist_Role"));
+        if (role == null) return;
+        mem.getGuild().addRoleToMember(mem, role).queue();
     }
 
     @Override

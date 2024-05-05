@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -71,7 +72,10 @@ public class API {
         try {
             PreparedStatement stmt = conn.prepareStatement("INSERT INTO `punishments` (`discord_id`, `datetime`, `ruleIds_broken`, `lastKnownName`, `lastKnownAvatar`, `punishment_type`, `punishment_length`, `reason`, `punished_by`, `punished_by_lastKnownName`, `punished_by_lastKnownAvatar`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             stmt.setLong(1, punishedMember.getIdLong());
-            stmt.setString(2, Instant.now(Clock.system(ZoneId.of("America/New_York"))).toString());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("America/New_York"));
+            String datetimeStr = now.format(formatter);
+            stmt.setString(2, datetimeStr);
             stmt.setString(3, String.join(", ", ruleIds_broken));
             stmt.setString(4, punishedMember.getUser().getName() + "#" + punishedMember.getUser().getDiscriminator());
             stmt.setString(5, punishedMember.getUser().getAvatarUrl());
@@ -135,18 +139,6 @@ public class API {
             ex.printStackTrace();
         }
         return "";
-    }
-    public void removeStickyMessage(TextChannel chan) {
-        long id = chan.getIdLong();
-        Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("DELETE FROM `stickies` WHERE `channel_id` = ?");
-            stmt.setLong(1, id);
-            stmt.execute();
-        } catch (SQLException ex) {
-            Logger.log(ex);
-            ex.printStackTrace();
-        }
     }
 
     public HashMap<Long, String> getStickyMessages() {
