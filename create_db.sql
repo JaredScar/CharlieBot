@@ -51,3 +51,11 @@ CREATE TABLE `roles` (
     `blacklist_id` INT(128),
     `role_id` BIGINT(128)
 );
+
+CREATE TABLE `lockdown_roles` (
+    `channel_id` BIGINT(128),
+    `role_id` BIGINT(128),
+    `permission` VARCHAR(128),
+    `default` BIT(1) DEFAULT NULL,
+    PRIMARY KEY (`channel_id`, `role_id`, `permission`)
+);

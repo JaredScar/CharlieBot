@@ -8,9 +8,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -22,6 +25,7 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 
 import java.awt.*;
 import java.sql.Connection;
@@ -71,6 +75,62 @@ public class ManagerUtils {
         @Setter
         private String reason;
     }
+
+    public static boolean handleRolePermissionsOnLockdown(TextChannel chan, List<PermissionOverride> permissionOverrides) {
+        try {
+            Connection conn = Main.getInstance().getSqlHelper().getConn();
+            PreparedStatement prep = conn.prepareStatement("INSERT INTO `lockdown_roles` (`channel_id`, `role_id`, `permission`, `default`) VALUES (?, ?, ?, ?)");
+            Collection<Permission> allows = new ArrayList<>();
+            Collection<Permission> denies = new ArrayList<>();
+            denies.add(Permission.MESSAGE_SEND);
+            denies.add(Permission.MESSAGE_ADD_REACTION);
+            denies.add(Permission.MESSAGE_SEND_IN_THREADS);
+            List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
+            TextChannelManager manager = chan.getManager();
+            for (PermissionOverride permO : permissionOverrides) {
+                if (permO.getRole() == null) continue;
+                long roleId = permO.getRole().getIdLong();
+                if (disregardRoles.contains(permO.getRole().getId())) continue;
+                prep.setLong(1, chan.getIdLong());
+                prep.setLong(2, roleId);
+                prep.setString(3, "MESSAGE_SEND");
+                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_SEND));
+                prep.execute();
+                prep.setString(3, "MESSAGE_ADD_REACTION");
+                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_ADD_REACTION));
+                prep.execute();
+                prep.setString(3, "MESSAGE_SEND_IN_THREADS");
+                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_SEND_IN_THREADS));
+                prep.execute();
+                manager = manager.putRolePermissionOverride(roleId, allows, denies);
+            }
+            manager.queue();
+        } catch (Exception ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+    public static boolean handleRolePermissionsAfterLockdown(TextChannel chan, List<PermissionOverride> permissionOverrides) {
+        Collection<Permission> allows = new ArrayList<>();
+        Collection<Permission> denies = new ArrayList<>();
+        allows.add(Permission.MESSAGE_SEND);
+        allows.add(Permission.MESSAGE_ADD_REACTION);
+        allows.add(Permission.MESSAGE_SEND_IN_THREADS);
+        List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
+        TextChannelManager manager = chan.getManager();
+        for (PermissionOverride permO : permissionOverrides) {
+            if (permO.getRole() == null) continue;
+            long roleId = permO.getRole().getIdLong();
+            if (disregardRoles.contains(permO.getRole().getId())) continue;
+
+            manager = manager.putRolePermissionOverride(roleId, allows, denies);
+        }
+        manager.queue();
+        return true;
+    }
+
     /**
      * @param evt
      * @param punishmentType
