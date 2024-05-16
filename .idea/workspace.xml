@@ -9,9 +9,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Closer to getting to production ready">
-      <change beforePath="$PROJECT_DIR$/.idea/sqldialects.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sqldialects.xml" afterDir="false" />
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Current code changes to handle lockdowns properly">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/LockdownManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/LockdownManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/ManagerUtils.java" afterDir="false" />
@@ -155,7 +155,7 @@
       <workItem from="1714269568707" duration="335000" />
       <workItem from="1714270551099" duration="6685000" />
       <workItem from="1714942994585" duration="5283000" />
-      <workItem from="1715728005061" duration="1727000" />
+      <workItem from="1715728005061" duration="3779000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
@@ -443,14 +443,21 @@
       <option name="project" value="LOCAL" />
       <updated>1714948322953</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="Current code changes to handle lockdowns properly">
+      <option name="closed" value="true" />
+      <created>1715729782821</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1715729782821</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="+ Finished PointsMessage&#10;+ Finished RankMessage&#10;+ Finished SelfPromotionMessage" />
     <MESSAGE value="+ Started implementation of Gamble command" />
     <MESSAGE value="+ Gamble command completed&#10;+ Start on LockdownCommand and StickyCommand" />
     <MESSAGE value="+ LockdownManager added so we can use modals for posting reason channel was locked" />
@@ -475,7 +482,8 @@
     <MESSAGE value="Current changes to remote" />
     <MESSAGE value="More updates to get Charlie closer to production" />
     <MESSAGE value="Closer to getting to production ready" />
-    <option name="LAST_COMMIT_MESSAGE" value="Closer to getting to production ready" />
+    <MESSAGE value="Current code changes to handle lockdowns properly" />
+    <option name="LAST_COMMIT_MESSAGE" value="Current code changes to handle lockdowns properly" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

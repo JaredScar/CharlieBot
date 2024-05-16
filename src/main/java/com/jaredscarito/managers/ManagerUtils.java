@@ -5,6 +5,7 @@ import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.models.PunishmentType;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -35,24 +36,11 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ManagerUtils {
     @Getter
     private static HashMap<String, List<String>> rulesSelected = new HashMap<>();
-
-    public static TimeUnit getTimeUnitFromString(String str) {
-        switch (str.toLowerCase()) {
-            case "second":
-                return TimeUnit.SECONDS;
-            case "minute":
-                return TimeUnit.MINUTES;
-            case "hour":
-                return TimeUnit.HOURS;
-            case "day":
-                return TimeUnit.DAYS;
-        }
-        return TimeUnit.DAYS;
-    }
 
     @AllArgsConstructor
     private static class PunishmentData {
@@ -112,22 +100,55 @@ public class ManagerUtils {
         }
         return true;
     }
-    public static boolean handleRolePermissionsAfterLockdown(TextChannel chan, List<PermissionOverride> permissionOverrides) {
-        Collection<Permission> allows = new ArrayList<>();
-        Collection<Permission> denies = new ArrayList<>();
-        allows.add(Permission.MESSAGE_SEND);
-        allows.add(Permission.MESSAGE_ADD_REACTION);
-        allows.add(Permission.MESSAGE_SEND_IN_THREADS);
-        List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
-        TextChannelManager manager = chan.getManager();
-        for (PermissionOverride permO : permissionOverrides) {
-            if (permO.getRole() == null) continue;
-            long roleId = permO.getRole().getIdLong();
-            if (disregardRoles.contains(permO.getRole().getId())) continue;
-
-            manager = manager.putRolePermissionOverride(roleId, allows, denies);
+    public static boolean handleRolePermissionsAfterLockdown(TextChannel chan) {
+        @Data
+        class LockdownRole {
+            private long channelId;
+            private long roleId;
+            private String permission;
+            private boolean defaultValue;
         }
-        manager.queue();
+        try {
+            Connection conn = Main.getInstance().getSqlHelper().getConn();
+            PreparedStatement prep = conn.prepareStatement("SELECT * FROM `lockdown_roles` WHERE `channel_id` = ?;");
+            prep.setLong(1, chan.getIdLong());
+            ResultSet rs = prep.executeQuery();
+            List<LockdownRole> lockdownRoles = new ArrayList<>();
+            while (rs.next()) {
+                LockdownRole lr = new LockdownRole();
+                long channelId = rs.getLong("channel_id");
+                long roleId = rs.getLong("role_id");
+                String permission = rs.getString("permission");
+                boolean defaultValue = rs.getBoolean("default");
+                lr.setChannelId(channelId);
+                lr.setRoleId(roleId);
+                lr.setPermission(permission);
+                lr.setDefaultValue(defaultValue);
+                lockdownRoles.add(lr);
+            }
+            TextChannelManager manager = chan.getManager();
+            Map<Long, List<LockdownRole>> lockdownRolesByRoleId = lockdownRoles.stream()
+                    .collect(Collectors.groupingBy(LockdownRole::getRoleId));
+            for (long roleId : lockdownRolesByRoleId.keySet()) {
+                List<LockdownRole> lrs = lockdownRolesByRoleId.get(roleId);
+                Collection<Permission> allows = new ArrayList<>();
+                Collection<Permission> denies = new ArrayList<>();
+                for (LockdownRole lr : lrs) {
+                    String perm = lr.getPermission();
+                    boolean defaultValue = lr.isDefaultValue();
+                    if (defaultValue)
+                        allows.add(Permission.valueOf(perm));
+                    else
+                        denies.add(Permission.valueOf(perm));
+                }
+                manager = manager.putRolePermissionOverride(roleId, allows, denies);
+            }
+            manager.queue();
+        } catch (Exception ex) {
+            Logger.log(ex);
+            ex.printStackTrace();
+            return false;
+        }
         return true;
     }
 
@@ -168,7 +189,7 @@ public class ManagerUtils {
             e.printStackTrace();
         }
         List<PunishmentData> pDatas = punishmentData.get(opt.getAsMember());
-        if (pDatas.size() > 0) {
+        if (!pDatas.isEmpty()) {
             // It has actual PunishmentData
             StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(pName + "Remove" + "|" + opt.getAsMember().getId());
             for (PunishmentData pd : pDatas) {

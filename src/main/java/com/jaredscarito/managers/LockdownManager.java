@@ -44,21 +44,14 @@ public class LockdownManager extends ListenerAdapter {
     }
     private void lockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
         List<PermissionOverride> permissionOverrides = chan.getPermissionOverrides();
-        List<PermissionOverride> memberPermissionOverrides = chan.getMemberPermissionOverrides();
-        boolean completed;
-        completed = ManagerUtils.handleRolePermissionsOnLockdown(chan, permissionOverrides);
-        completed = ManagerUtils.handleRolePermissionsOnLockdown(chan, memberPermissionOverrides);
+        boolean completed = ManagerUtils.handleRolePermissionsOnLockdown(chan, permissionOverrides);
         Logger.log(ActionType.LOCKDOWN_START, mem, chan, reason);
         if (completed) {
             evt.reply("**\uD83D\uDD12 LOCKED CHANNEL** -- This channel has been locked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
         }
     }
     private void unlockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
-        List<PermissionOverride> permissionOverrides = chan.getPermissionOverrides();
-        List<PermissionOverride> memberPermissionOverrides = chan.getMemberPermissionOverrides();
-        boolean completed;
-        completed = ManagerUtils.handleRolePermissionsAfterLockdown(chan, permissionOverrides);
-        completed = ManagerUtils.handleRolePermissionsAfterLockdown(chan, memberPermissionOverrides);
+        boolean completed = ManagerUtils.handleRolePermissionsAfterLockdown(chan);
         Logger.log(ActionType.LOCKDOWN_END, mem, chan, reason);
         if (completed) {
             evt.reply("**\uD83D\uDD13 UNLOCKED CHANNEL** -- This channel has been unlocked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();

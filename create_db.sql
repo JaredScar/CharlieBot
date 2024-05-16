@@ -32,7 +32,8 @@ CREATE TABLE `punishments` (
     `reason` TEXT(1024),
     `punished_by` BIGINT(128),
     `punished_by_lastKnownName` VARCHAR(128) NOT NULL,
-    `punished_by_lastKnownAvatar` VARCHAR(255) NOT NULL
+    `punished_by_lastKnownAvatar` VARCHAR(255) NOT NULL,
+    `deleted` BIT(1) DEFAULT 0
 );
 
 CREATE TABLE `ranking` (
@@ -40,6 +41,11 @@ CREATE TABLE `ranking` (
     `lastKnownName` VARCHAR(128) NOT NULL,
     `lastKnownAvatar` VARCHAR(255) NOT NULL,
     `exp` INT(128) NOT NULL
+);
+
+CREATE TABLE `mutes` (
+    `mute_id` INT(128) AUTO_INCREMENT PRIMARY KEY,
+    `discord_id` BIGINT(128) UNIQUE KEY
 );
 
 CREATE TABLE `blacklists` (

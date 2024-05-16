@@ -14,7 +14,7 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 | Gamble    |     ✅      |    ✅    |
 | Bark      |     ❌      |    ❌    |
 | Sticky    |     ✅      |    ✅    |
-| Lockdown  |     ✅      |    ✅    |
+| Lockdown  |     ✅      |    ❌    |
 | Mute      |     ❌      |    ❌    |
 | Kick      |     ✅      |    ✅    |
 | Blacklist |     ✅      |    ✅    |
