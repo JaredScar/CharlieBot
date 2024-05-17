@@ -3,6 +3,7 @@ package com.jaredscarito.managers;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.models.ActionType;
+import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -11,7 +12,6 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -20,7 +20,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class MuteManager extends ListenerAdapter {
     @Override
@@ -43,9 +42,12 @@ public class MuteManager extends ListenerAdapter {
         Member muteUser = evt.getGuild().getMemberById(userId);
         if (muteUser == null) return;
         String fullUserName = muteUser.getUser().getName() + "#" + muteUser.getUser().getDiscriminator();
-        // TODO Actually mute them
         Logger.log(ActionType.MUTE_CREATE, evt.getMember(), muteUser, reason);
-        evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
+        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
+        List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        API.getInstance().logPunishment(muteUser, evt.getMember(), PunishmentType.MUTE, durationFilter.getAsString(), ruleIds, reason);
+        if (ManagerUtils.handleMuteMember(muteUser))
+            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
     }
 
     @Override

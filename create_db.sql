@@ -43,11 +43,6 @@ CREATE TABLE `ranking` (
     `exp` INT(128) NOT NULL
 );
 
-CREATE TABLE `mutes` (
-    `mute_id` INT(128) AUTO_INCREMENT PRIMARY KEY,
-    `discord_id` BIGINT(128) UNIQUE KEY
-);
-
 CREATE TABLE `blacklists` (
     `blacklist_id` INT(128) AUTO_INCREMENT PRIMARY KEY,
     `discord_id` BIGINT(128) UNIQUE KEY

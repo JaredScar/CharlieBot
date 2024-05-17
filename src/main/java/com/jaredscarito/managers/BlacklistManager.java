@@ -3,6 +3,7 @@ package com.jaredscarito.managers;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.models.ActionType;
+import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
@@ -42,6 +43,9 @@ public class BlacklistManager extends ListenerAdapter {
         // Actually blacklist them
         blacklistMember(blacklistUser);
         Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
+        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
+        List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        API.getInstance().logPunishment(blacklistUser, evt.getMember(), PunishmentType.BLACKLIST, "", ruleIds, reason);
         evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been blacklisted...").build()).setEphemeral(true).queue();
     }
 
