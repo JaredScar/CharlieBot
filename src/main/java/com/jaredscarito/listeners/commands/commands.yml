@@ -1,0 +1,46 @@
+Commands:
+  warn:
+    add: "Utilize `/warn add [member]` to add a warning to a server member"
+    remove: "Utilize `/warn remove [member]` to remove a warning from a server member"
+  history:
+    view: "Utilize `/history view [user]` to view a punishment history of the provided user"
+    clear: "Utilize `/history clear [user]` to clear the punishment history of the provided user"
+  ticket:
+    add: "Utilize `/ticket add [member]` to add a server member to the current ticket"
+    remove: "Utilize `/ticket remove [member]` to remove a server member from the current ticket"
+    members: "Utilize `/ticket members` to see the current members of the current ticket"
+    lock: "Utilize `/ticket lock` to lock down the ticket for regular members"
+    unlock: "Utilize `/ticket unlock` to unlock the ticket for regular members"
+  rules:
+    _: "Utilize `/rules` to see all of the server rules listed"
+    add: "Utilize `/rules add` to start the process of adding a new rule to the server"
+    edit: "Utilize `/rules edit` to start the process of editing an existing rule of the server"
+    remove: "Utilize `/rules remove` to start the process of removing an existing rule of the server"
+  points:
+    _: "Utilize `/points` to see your balance of points"
+    give: "Utilize `/points give [amount] [member]` to give points to the provided server member"
+    leaderboard: "Utilize `/points leaderboard` to see the server leaderboard for who has the highest points balance"
+    store: "Utilize `/points store` to access the store where you can spend your points"
+    redeem: "Utilize `/points redeem` to redeem points each and every day once"
+  gamble:
+    _: "Utilize `/gamble` to gamble your points to potentially earn more"
+  bark:
+    _: "Utilize `/bark` to get a random photo or video of Charlie"
+  sticky:
+    add: "Utilize `/sticky add [message]` to add a message that will be stickied to the current channel"
+    remove: "Utilize `/sticky remove` to remove the stickied message from the current channel"
+  lockdown:
+    enable: "Utilize `/lockdown enable` to lock the current channel for regular members"
+    disable: "Utilize `/lockdown disable` to unlock the current channel for regular members"
+  mute:
+    add: "Utilize `/mute add [member]` to add a mute to the provided server member"
+    remove: "Utilize `/mute remove [user]` to remove a mute from the provided server member"
+  kick:
+    add: "Utilize `/kick add [member]` to kick a server member from the server"
+    remove: "Utilize `/kick remove [user]` to remove a kick from a user's history"
+  blacklist:
+    add: "Utilize `/blacklist add [member]` to blacklist a server member from the server"
+    remove: "Utilize `/blacklist remove [member]` to remove a blacklist from a server member"
+  ban:
+    add: "Utilize `/ban add [user]` to ban a user from the server"
+    remove: "Utilize `/ban remove [user]` to remove a ban from the provided user"

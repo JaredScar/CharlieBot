@@ -32,6 +32,7 @@ public class GeneralCommandEventListener extends ListenerAdapter {
             case "points" -> PointsCommand.invoke(evt);
             case "history" -> HistoryCommand.invoke(evt);
             case "rules" -> RuleCommand.invoke(evt);
+            case "help" -> HelpCommand.invoke(evt);
         }
     }
     public boolean isEnabled(String command) {

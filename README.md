@@ -53,7 +53,7 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 #### Points
 `/points`
 
-`/points give [amount]`
+`/points give [amount] [member]`
 
 `/points leaderboard`
 
@@ -76,8 +76,10 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 `/mute add [user]`
 `/mute remove [user]`
 #### Kick
-`/kick [user]`
+`/kick add [user]`
 #### Blacklist
-`/blacklist [user]`
+`/blacklist add [user]`
+`/blacklist remove [user]`
 #### Ban
-`/ban [user]`
+`/ban add [user]`
+`/ban remove [user]`
