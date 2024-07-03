@@ -2,6 +2,7 @@ package com.jaredscarito.listeners.api;
 
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.jaredscarito.models.PunishmentData;
 import com.jaredscarito.models.PunishmentType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -87,6 +88,50 @@ public class API {
         } catch (SQLException e) {
             Logger.log(e);
         }
+    }
+
+    public List<PunishmentData> getAllPunishmentData(long discordId) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        List<PunishmentData> punishments = new ArrayList<>();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `punishments` WHERE `discord_id` = ?");
+            stmt.setLong(1, discordId);
+            ResultSet res = stmt.executeQuery();
+            while (res.next()) {
+                int pid = res.getInt("pid");
+                Date datetime = res.getDate("datetime");
+                String ruleIds = res.getString("ruleIds_broken");
+                String lastKnownName = res.getString("lastKnownName");
+                String lastKnownAvatar = res.getString("lastKnownAvatar");
+                String punishmentTypeStr = res.getString("punishment_type");
+                PunishmentType punishmentType = PunishmentType.valueOf(punishmentTypeStr);
+                String punishmentLength = res.getString("punishment_length");
+                String reason = res.getString("reason");
+                long punishedBy = res.getLong("punished_by");
+                String punishedByLastKnownName = res.getString("punished_by_lastKnownName");
+                String punishedByLastKnownAvatar = res.getString("punished_by_lastKnownAvatar");
+                boolean deleted = res.getBoolean("deleted");
+                PunishmentData pd = new PunishmentData(
+                        pid,
+                        discordId,
+                        datetime,
+                        ruleIds,
+                        lastKnownName,
+                        lastKnownAvatar,
+                        punishmentType,
+                        punishmentLength,
+                        reason,
+                        punishedBy,
+                        punishedByLastKnownName,
+                        punishedByLastKnownAvatar,
+                        deleted
+                );
+                punishments.add(pd);
+            }
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
+        return punishments;
     }
 
     public TreeMap<String, String> getRules() {
