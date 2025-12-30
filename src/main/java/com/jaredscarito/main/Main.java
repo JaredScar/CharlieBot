@@ -1,26 +1,32 @@
 package com.jaredscarito.main;
 
+import java.io.File;
+import java.sql.SQLException;
+import java.util.List;
+
 import com.jaredscarito.listeners.commands.general.GeneralCommandEventListener;
 import com.jaredscarito.listeners.messaging.general.GeneralMessageEventListener;
 import com.jaredscarito.logger.Logger;
-import com.jaredscarito.managers.*;
+import com.jaredscarito.managers.BanManager;
+import com.jaredscarito.managers.BlacklistManager;
+import com.jaredscarito.managers.KickManager;
+import com.jaredscarito.managers.LockdownManager;
+import com.jaredscarito.managers.MuteManager;
+import com.jaredscarito.managers.StickyManager;
+import com.jaredscarito.managers.TicketManager;
+import com.jaredscarito.managers.WarnManager;
 import com.jaredscarito.sql.SQLHelper;
 import com.timvisee.yamlwrapper.ConfigurationSection;
 import com.timvisee.yamlwrapper.YamlConfiguration;
+
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandCreateAction;
-import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
-
-import java.io.File;
-import java.sql.SQLException;
-import java.util.List;
 
 public class Main {
     private static JDA JDA_INSTANCE = null;

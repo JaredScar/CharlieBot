@@ -9,10 +9,10 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 | Feature   | Completed? | Tested? |
 |-----------|:----------:|:-------:|
 | Tickets   |     ✅      |    ❌    |
-| Rules     |     ❌      |    ❌    |
-| Points    |     ❌      |    ❌    |
+| Rules     |     ✅      |    ❌    |
+| Points    |     ✅      |    ❌    |
 | Gamble    |     ✅      |    ✅    |
-| Bark      |     ❌      |    ❌    |
+| Bark      |     ✅      |    ❌    |
 | Sticky    |     ✅      |    ✅    |
 | Lockdown  |     ✅      |    ❌    |
 | Mute      |     ✅      |    ❌    |
@@ -20,8 +20,8 @@ A bot that was created to commemorate my dog Charlie who passed away of congesti
 | Blacklist |     ✅      |    ✅    |
 | Ban       |     ✅      |    ✅    |
 | Warn      |     ✅      |    ✅    |
-| History   |     ❌      |    ❌    |
-| Help      |     ❌      |    ❌    |
+| History   |     ✅      |    ❌    |
+| Help      |     ✅      |    ❌    |
 ### Commands
 
 #### Warn
