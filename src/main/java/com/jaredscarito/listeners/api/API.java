@@ -432,7 +432,11 @@ public class API {
 
     public void saveTicketToFile(TextChannel chan, Member closer, String closeReason, Consumer<Boolean> result) {
         File ticketSaveDir = new File("ticket_logs");
-        if (!ticketSaveDir.exists()) ticketSaveDir.mkdir();
+        if (!ticketSaveDir.exists()) ticketSaveDir.mkdirs();
+        
+        File attachmentsDir = new File("ticket_logs/attachments");
+        if (!attachmentsDir.exists()) attachmentsDir.mkdirs();
+        
         File logFile = new File("ticket_logs/" + chan.getId() + "-log.html");
         try {
             logFile.createNewFile();
@@ -508,7 +512,7 @@ public class API {
                     List<File> files = new ArrayList<>();
                     for (Message.Attachment attach : attachments) {
                         CompletableFuture<File> file = attach.downloadToFile();
-                        File attachment = new File("ticket_log/attachments/" + chan.getId() + "-" + attach.getFileName()
+                        File attachment = new File("ticket_logs/attachments/" + chan.getId() + "-" + attach.getFileName()
                                 + "." + attach.getFileExtension());
                         file.complete(attachment);
                         if (attachment.exists())
@@ -551,12 +555,22 @@ public class API {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    TextChannel LOG_CHANNEL = Main.getInstance().getJDA().getTextChannelById(Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel"));
-                    if (LOG_CHANNEL != null) {
-                        LOG_CHANNEL.sendMessage("A ticket has been logged. **TITLE:** `" + chan.getName() + "`")
-                                .addFiles(FileUpload.fromData(logFile)).queue((msg) -> {
-                                    logFile.delete();
-                                });
+                    String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
+                    if (logChannelId != null && !logChannelId.isEmpty()) {
+                        TextChannel LOG_CHANNEL = Main.getInstance().getJDA().getTextChannelById(logChannelId);
+                        if (LOG_CHANNEL != null && logFile.exists()) {
+                            LOG_CHANNEL.sendMessage("A ticket has been logged. **TITLE:** `" + chan.getName() + "`")
+                                    .addFiles(FileUpload.fromData(logFile)).queue((msg) -> {
+                                        logFile.delete();
+                                    }, (error) -> {
+                                        System.err.println("Failed to send ticket log to Discord: " + error.getMessage());
+                                        error.printStackTrace();
+                                    });
+                        } else {
+                            System.err.println("Log channel not found or log file doesn't exist. Channel ID: " + logChannelId);
+                        }
+                    } else {
+                        System.err.println("Bot.Tickets.Log_Channel not configured in config.yml");
                     }
                     result.accept(true);
                     return true;
@@ -566,6 +580,7 @@ public class API {
             });
         } catch (Exception ex) {
             ex.printStackTrace();
+            result.accept(false);
         }
     }
 }

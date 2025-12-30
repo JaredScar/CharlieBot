@@ -1,14 +1,31 @@
 package com.jaredscarito.managers;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.models.ActionType;
-import com.mysql.cj.log.Log;
 import com.timvisee.yamlwrapper.YamlConfiguration;
+
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -22,15 +39,6 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
-import org.jetbrains.annotations.NotNull;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class TicketManager extends ListenerAdapter {
 
@@ -96,22 +104,42 @@ public class TicketManager extends ListenerAdapter {
 
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent evt) {
-        if (evt.getMember() == null) return;
-        if (!evt.getId().equals("ticketSelectMenu")) return;
-        List<SelectOption> selectedOpts = evt.getSelectedOptions();
-        for (SelectOption opt : selectedOpts) {
-            // Check if value exists
-            String optVal = opt.getValue();
-            String title = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Title");
-            String desc = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
-            List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + optVal + ".Roles_Required");
-            if (canOpenTicketType(evt.getMember(), roles_required)) {
-                API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
-            } else {
-                API.getInstance().sendErrorMessage(evt, evt.getMember(), "Error: Permission denied.", "You do not have permissions to open a ticket of this type...");
-            }
+        if (evt.getMember() == null) {
+            evt.reply("❌ Error: Unable to identify member.").setEphemeral(true).queue();
+            return;
         }
-        evt.editSelectMenu(evt.getSelectMenu().createCopy().build()).queue();
+        
+        if (!evt.getComponentId().equals("ticketSelectMenu")) return;
+        
+        List<SelectOption> selectedOpts = evt.getSelectedOptions();
+        if (selectedOpts.isEmpty()) {
+            evt.reply("❌ Error: No ticket category selected.").setEphemeral(true).queue();
+            return;
+        }
+        
+        try {
+            for (SelectOption opt : selectedOpts) {
+                // Check if value exists
+                String optVal = opt.getValue();
+                if (optVal == null || optVal.isEmpty()) {
+                    evt.reply("❌ Error: Invalid ticket category selected.").setEphemeral(true).queue();
+                    return;
+                }
+                
+                String title = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Title");
+                String desc = getConfigValue("Bot.Tickets.Ticket_Options." + optVal + ".Open_Ticket_Confirm_Desc");
+                List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + optVal + ".Roles_Required");
+                
+                if (canOpenTicketType(evt.getMember(), roles_required)) {
+                    API.getInstance().askConfirmDenyMessage(evt, evt.getMember(), title, desc);
+                } else {
+                    API.getInstance().sendErrorMessage(evt, evt.getMember(), "Error: Permission denied.", "You do not have permissions to open a ticket of this type...");
+                }
+            }
+        } catch (Exception e) {
+            evt.reply("❌ An error occurred while processing your ticket selection: " + e.getMessage()).setEphemeral(true).queue();
+            e.printStackTrace();
+        }
     }
 
     private String getCurrentDatetimeString() {
@@ -119,7 +147,7 @@ public class TicketManager extends ListenerAdapter {
 
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        formatter.setTimeZone(TimeZone.getTimeZone("EST"));
+        formatter.setTimeZone(TimeZone.getTimeZone("America/New_York"));
 
         return (formatter.format(date));
     }
@@ -127,9 +155,17 @@ public class TicketManager extends ListenerAdapter {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent evt) {
         Member mem = evt.getMember();
-        if (mem == null) return;
-        if (mem.getUser().isBot()) return;
+        if (mem == null || mem.getUser().isBot()) {
+            evt.reply("❌ Error: Unable to process button interaction.").setEphemeral(true).queue();
+            return;
+        }
+        
         String buttonId = evt.getButton().getId();
+        if (buttonId == null) {
+            evt.reply("❌ Error: Invalid button.").setEphemeral(true).queue();
+            return;
+        }
+        
         String[] params = buttonId.split("\\|");
         if (params.length < 2) {
             switch (params[0]) {
@@ -147,73 +183,117 @@ public class TicketManager extends ListenerAdapter {
                     evt.replyModal(modal).queue();
                 }
                 case "lockTicket" -> {
-                    boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
-                    Logger.log(ActionType.LOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
+                    if (evt.getChannel() instanceof TextChannel) {
+                        boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
+                        if (ticketWasLocked) {
+                            evt.reply("✅ Ticket has been locked.").setEphemeral(true).queue();
+                        } else {
+                            evt.reply("❌ Failed to lock ticket.").setEphemeral(true).queue();
+                        }
+                        Logger.log(ActionType.LOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
+                    }
                 }
                 case "unlockTicket" -> {
-                    boolean ticketWasUnlocked = this.unlockTicket(evt.getChannel().asTextChannel(), evt.getMember());
-                    Logger.log(ActionType.UNLOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
+                    if (evt.getChannel() instanceof TextChannel) {
+                        boolean ticketWasUnlocked = this.unlockTicket(evt.getChannel().asTextChannel(), evt.getMember());
+                        if (ticketWasUnlocked) {
+                            evt.reply("✅ Ticket has been unlocked.").setEphemeral(true).queue();
+                        } else {
+                            evt.reply("❌ Failed to unlock ticket.").setEphemeral(true).queue();
+                        }
+                        Logger.log(ActionType.UNLOCK_TICKET, mem, evt.getChannel().asTextChannel(), "");
+                    }
                 }
+                default -> evt.reply("❌ Unknown button action.").setEphemeral(true).queue();
             }
             return; // Not enough arguments for a create_ticket option response
         }
-        String discCategory = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Category");
-        String categoryLabel = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Label");
-        String categoryIcon = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Icon");
-        String startMessage = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Start_Message");
-        switch (params[0].toLowerCase()) {
-            case "confirm":
-                Guild guild = evt.getJDA().getGuildById(getConfigValue("Bot.Guild"));
-                if (guild != null) {
+        
+        try {
+            String discCategory = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Category");
+            String categoryLabel = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Label");
+            String categoryIcon = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Icon");
+            String startMessage = getConfigValue("Bot.Tickets.Ticket_Options." + params[1] + ".Start_Message");
+            
+            if (discCategory == null || categoryLabel == null) {
+                evt.reply("❌ Error: Ticket configuration not found.").setEphemeral(true).queue();
+                return;
+            }
+            
+            switch (params[0].toLowerCase()) {
+                case "confirm":
+                    // Acknowledge the interaction immediately
+                    evt.deferReply().queue();
+                    
+                    Guild guild = evt.getJDA().getGuildById(getConfigValue("Bot.Guild"));
+                    if (guild == null) {
+                        evt.getHook().sendMessage("❌ Error: Guild not found.").setEphemeral(true).queue();
+                        return;
+                    }
+                    
                     Category category = guild.getCategoryById(discCategory);
-                    if (category != null) {
-                        try {
-                            PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
-                                    .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
-                                            new String[] {"ticket_id"});
-                            prep.setLong(1, mem.getIdLong());
-                            prep.setString(2, params[1]);
-                            prep.setString(3, getCurrentDatetimeString());
-                            prep.setInt(4, 0);
-                            prep.execute();
-                            ResultSet rs = prep.getGeneratedKeys();
-                            if (rs.next()) {
-                                int ticketId = rs.getInt(1);
-                                category.createTextChannel(categoryIcon + "--" + evt.getMember().getUser().getName()
-                                        + "--" + ticketId).queue((textChan) -> {
-                                    evt.editMessage("Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setReplace(true).queue();
-                                    this.addManagersToTicket(textChan, params[1]);
-                                    API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
-                                        try {
-                                            PreparedStatement prepared = Main.getInstance().getSqlHelper().getConn()
-                                                    .prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?");
-                                            prepared.setLong(1, msg.getIdLong());
-                                            prepared.setLong(2, textChan.getIdLong());
-                                            prepared.setInt(3, ticketId);
-                                            prepared.execute();
-                                        } catch (SQLException ex) {
-                                            Logger.log(ex);
-                                            ex.printStackTrace();
-                                        }
-                                    });
-                                    if (startMessage.length() > 0) {
-                                        String newLine = System.getProperty("line.separator");
-                                        String newMsg = startMessage.replace("\\n", newLine);
-                                        textChan.sendMessage(newMsg).queue();
-                                        Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
+                    if (category == null) {
+                        evt.getHook().sendMessage("❌ Error: Ticket category not found. Please contact an administrator.").setEphemeral(true).queue();
+                        return;
+                    }
+                    
+                    try {
+                        PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
+                                .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
+                                        new String[] {"ticket_id"});
+                        prep.setLong(1, mem.getIdLong());
+                        prep.setString(2, params[1]);
+                        prep.setString(3, getCurrentDatetimeString());
+                        prep.setInt(4, 0);
+                        prep.execute();
+                        ResultSet rs = prep.getGeneratedKeys();
+                        if (rs.next()) {
+                            int ticketId = rs.getInt(1);
+                            String channelName = (categoryIcon != null ? categoryIcon : "🎫") + "--" + evt.getMember().getUser().getName() + "--" + ticketId;
+                            category.createTextChannel(channelName).queue((textChan) -> {
+                                evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
+                                this.addManagersToTicket(textChan, params[1]);
+                                API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
+                                    try {
+                                        PreparedStatement prepared = Main.getInstance().getSqlHelper().getConn()
+                                                .prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?");
+                                        prepared.setLong(1, msg.getIdLong());
+                                        prepared.setLong(2, textChan.getIdLong());
+                                        prepared.setInt(3, ticketId);
+                                        prepared.execute();
+                                    } catch (SQLException ex) {
+                                        Logger.log(ex);
+                                        ex.printStackTrace();
                                     }
                                 });
-                            }
-                        } catch (SQLException ex) {
-                            Logger.log(ex);
-                            ex.printStackTrace();
+                                if (startMessage != null && startMessage.length() > 0) {
+                                    String newLine = System.getProperty("line.separator");
+                                    String newMsg = startMessage.replace("\\n", newLine);
+                                    textChan.sendMessage(newMsg).queue();
+                                    Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
+                                }
+                            }, (error) -> {
+                                evt.getHook().sendMessage("❌ Error: Failed to create ticket channel: " + error.getMessage()).setEphemeral(true).queue();
+                                error.printStackTrace();
+                            });
+                        } else {
+                            evt.getHook().sendMessage("❌ Error: Failed to create ticket in database.").setEphemeral(true).queue();
                         }
+                    } catch (SQLException ex) {
+                        Logger.log(ex);
+                        ex.printStackTrace();
+                        evt.getHook().sendMessage("❌ Error: Database error occurred while creating ticket.").setEphemeral(true).queue();
                     }
-                }
-                break;
-            case "deny":
-                evt.editMessage("You have cancelled your ticket creation for category: " + categoryLabel).setReplace(true).queue();
-                break;
+                    break;
+                case "deny":
+                    evt.editMessage("❌ You have cancelled your ticket creation for category: " + categoryLabel).setReplace(true).queue();
+                    break;
+                default:
+                    evt.reply("❌ Unknown button action.").setEphemeral(true).queue();
+            }
+        } catch (Exception e) {
+            evt.reply("❌ An error occurred: " + e.getMessage()).setEphemeral(true).queue();
+            e.printStackTrace();
         }
     }
 

@@ -1,0 +1,21 @@
+[2025-12-30 13:12:20] CREATE_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:12:28] CLOSE_TICKET:
+Performed by: badger.jar#0000
+Reason: test
+----------------------
+[2025-12-30 13:13:17] CREATE_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:13:24] CLOSE_TICKET:
+Performed by: badger.jar#0000
+Reason: test
+----------------------
+[2025-12-30 13:15:31] CREATE_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:15:36] CLOSE_TICKET:
+Performed by: badger.jar#0000
+Reason: test
+----------------------

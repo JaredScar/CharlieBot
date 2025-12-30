@@ -1,13 +1,5 @@
 package com.jaredscarito.logger;
 
-import com.jaredscarito.main.Main;
-import com.jaredscarito.models.ActionType;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,6 +8,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+
+import com.jaredscarito.main.Main;
+import com.jaredscarito.models.ActionType;
+
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 public class Logger {
     private static String getCurrentDatetimeString() {
@@ -28,6 +29,10 @@ public class Logger {
         return (formatter.format(date));
     }
     public static void log(ActionType actionType, Member performedBy, Member performedOn, List<String> brokenRuleIds, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -71,6 +76,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, String channelName, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -111,6 +120,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, TextChannel channel, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -151,6 +164,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, Member performedOn, TextChannel channel, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -195,6 +212,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, Member performedOn, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -238,6 +259,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, User performedOn, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -281,6 +306,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(ActionType actionType, Member performedBy, String reason) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File actionLog = new File("logs/actions.txt");
         if (!actionLog.exists()) {
             try {
@@ -320,6 +349,10 @@ public class Logger {
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
     public static void log(Exception ex) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) {
+            logsDir.mkdirs();
+        }
         File errors = new File("logs/error.txt");
         if (!errors.exists()) {
             try {
