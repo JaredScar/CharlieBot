@@ -17,16 +17,19 @@ public class RuleCommand {
         if (mem == null || mem.getUser().isBot()) return;
         
         String subcommand = evt.getSubcommandName();
+        // Discord requires a subcommand when subcommands are registered
+        // If somehow null, default to showing rules
         if (subcommand == null) {
-            // Show all rules
             showRules(evt, mem);
             return;
         }
         
         switch (subcommand.toLowerCase()) {
+            case "view" -> showRules(evt, mem);
             case "add" -> addRule(evt, mem);
             case "edit" -> editRule(evt, mem);
             case "remove" -> removeRule(evt, mem);
+            default -> showRules(evt, mem); // Fallback to showing rules
         }
     }
     

@@ -59,16 +59,83 @@ public class GambleCommand {
                 return;
             }
             
+            // Search for the GIF emoji - try exact name, name with underscores, and name without underscores
             List<RichCustomEmoji> slotsGifEmoji = evt.getGuild().getEmojisByName(slotsGif, false);
+            if (slotsGifEmoji.isEmpty()) {
+                // Try alternative name formats
+                String altName1 = slotsGif.replace("_", "");
+                String altName2 = slotsGif.replace("_", " ");
+                slotsGifEmoji = evt.getGuild().getEmojisByName(altName1, false);
+                if (slotsGifEmoji.isEmpty()) {
+                    slotsGifEmoji = evt.getGuild().getEmojisByName(altName2, false);
+                }
+            }
+            
+            // If still not found, try searching all animated emojis for one that contains the name
+            if (slotsGifEmoji.isEmpty()) {
+                List<RichCustomEmoji> allEmojis = evt.getGuild().getEmojiCache().asList();
+                if (allEmojis != null) {
+                    for (RichCustomEmoji emoji : allEmojis) {
+                        if (emoji != null && emoji.isAnimated()) {
+                            String emojiName = emoji.getName();
+                            if (emojiName != null && (emojiName.toLowerCase().contains(slotsGif.toLowerCase()) || 
+                                slotsGif.toLowerCase().contains(emojiName.toLowerCase()))) {
+                                slotsGifEmoji.add(emoji);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
             List<RichCustomEmoji> slotPngEmojis = new ArrayList<>();
             for (String slotPng : slotPngs) {
                 List<RichCustomEmoji> emojis = evt.getGuild().getEmojisByName(slotPng, false);
+                if (emojis.isEmpty()) {
+                    // Try alternative name formats
+                    String altName1 = slotPng.replace("_", "");
+                    String altName2 = slotPng.replace("_", " ");
+                    emojis = evt.getGuild().getEmojisByName(altName1, false);
+                    if (emojis.isEmpty()) {
+                        emojis = evt.getGuild().getEmojisByName(altName2, false);
+                    }
+                }
                 slotPngEmojis.addAll(emojis);
             }
             
             if (slotsGifEmoji.isEmpty()) {
-                evt.reply("❌ Error: Slot machine GIF emoji not found in this server. Please contact an administrator.").setEphemeral(true).queue();
-                return;
+                // Try to find any animated emoji as a fallback
+                List<RichCustomEmoji> allEmojis = evt.getGuild().getEmojiCache().asList();
+                if (allEmojis != null) {
+                    for (RichCustomEmoji emoji : allEmojis) {
+                        if (emoji != null && emoji.isAnimated()) {
+                            slotsGifEmoji.add(emoji);
+                            break; // Use the first animated emoji found
+                        }
+                    }
+                }
+                
+                if (slotsGifEmoji.isEmpty()) {
+                    StringBuilder errorMsg = new StringBuilder();
+                    errorMsg.append("❌ Error: Slot machine GIF emoji (`").append(slotsGif).append("`) not found in this server.\n");
+                    errorMsg.append("Looking for emoji name: `").append(slotsGif).append("`\n\n");
+                    errorMsg.append("**Available animated emojis:**\n");
+                    if (allEmojis != null) {
+                        int count = 0;
+                        for (RichCustomEmoji emoji : allEmojis) {
+                            if (emoji != null && emoji.isAnimated() && count < 10) {
+                                errorMsg.append("- `").append(emoji.getName()).append("`\n");
+                                count++;
+                            }
+                        }
+                        if (count == 0) {
+                            errorMsg.append("No animated emojis found in this server.\n");
+                        }
+                    }
+                    errorMsg.append("\nPlease update the config with the correct emoji name or contact an administrator.");
+                    evt.reply(errorMsg.toString()).setEphemeral(true).queue();
+                    return;
+                }
             }
             
             if (slotPngEmojis.isEmpty()) {

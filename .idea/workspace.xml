@@ -13,8 +13,20 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/CharlieBot.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/CharlieBot.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/config/config.yml" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/config/config.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/logs/actions.txt" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/logs/actions.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/api/API.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/logger/Logger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/logger/Logger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BanCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BanCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BlacklistCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/BlacklistCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/GambleCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/GambleCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/KickCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/KickCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/LockdownCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/LockdownCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/MuteCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/MuteCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/PointsCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/PointsCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/RuleCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/RuleCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/TicketCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/TicketCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/WarnCommand.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/commands/WarnCommand.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/PointsMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/listeners/messaging/PointsMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/main/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/TicketManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/TicketManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -195,7 +207,7 @@
       <workItem from="1761499534998" duration="16000" />
       <workItem from="1763351196754" duration="9000" />
       <workItem from="1767115544991" duration="11000" />
-      <workItem from="1767115583656" duration="2698000" />
+      <workItem from="1767115583656" duration="5835000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>

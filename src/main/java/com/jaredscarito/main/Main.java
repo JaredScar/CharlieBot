@@ -120,6 +120,15 @@ public class Main {
                 if (subCommandSection != null) {
                     List<String> subCommands = subCommandSection.getKeys();
                     // They have subcommands, add them to act
+                    // For Rules and Points, ensure "view" is registered first so it appears as default
+                    if (command.equalsIgnoreCase("Rules") || command.equalsIgnoreCase("Points")) {
+                        // Sort to put "view" first if it exists
+                        subCommands.sort((a, b) -> {
+                            if (a.equalsIgnoreCase("view")) return -1;
+                            if (b.equalsIgnoreCase("view")) return 1;
+                            return a.compareTo(b);
+                        });
+                    }
                     for (String subcommandKey : subCommands) {
                         String subcommandLabel = subcommandKey.toLowerCase();
                         String subcommandDesc = subCommandSection.getString(subcommandKey + ".Description");

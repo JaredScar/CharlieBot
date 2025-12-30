@@ -1,16 +1,17 @@
 package com.jaredscarito.listeners.messaging;
 
-import com.jaredscarito.listeners.api.API;
-import com.jaredscarito.main.Main;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+
+import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.main.Main;
+
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class PointsMessage {
     private static HashMap<Long, Instant> delayPointAdd = new HashMap<>();
@@ -31,8 +32,8 @@ public class PointsMessage {
             }
         } else {
             // It does not have them, add points
-            API.getInstance().addPoints(mem, Main.getInstance().getConfig().getInt("Bot.Messaging.Points.PointsPerMessage"));
-            delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DelayTime"), ChronoUnit.HOURS));
+            API.getInstance().addPoints(mem, Main.getInstance().getConfig().getInt("Bot.Messaging.Points.PerMessage"));
+            delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DelayTime"), ChronoUnit.SECONDS));
         }
     }
 

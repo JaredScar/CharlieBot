@@ -1,9 +1,31 @@
 package com.jaredscarito.listeners.api;
 
+import java.awt.Color;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.models.PunishmentData;
 import com.jaredscarito.models.PunishmentType;
+import com.timvisee.yamlwrapper.ConfigurationSection;
+
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -16,23 +38,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.FileUpload;
-
-import java.awt.*;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class API {
     private static final API api = new API();
@@ -53,7 +58,12 @@ public class API {
     }
 
     public void notifyPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
-        TextChannel punishmentChannel = punisher.getGuild().getTextChannelById(Main.getInstance().getConfig().getString("Bot.Punishment_Announce_Channel"));
+        String channelId = Main.getInstance().getConfig().getString("Bot.Punishment_Announce_Channel");
+        if (channelId == null || channelId.trim().isEmpty()) {
+            // No punishment channel configured, skip notification
+            return;
+        }
+        TextChannel punishmentChannel = punisher.getGuild().getTextChannelById(channelId);
         if (punishmentChannel == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(punishmentType.name());
@@ -135,21 +145,6 @@ public class API {
     }
 
     public TreeMap<String, String> getRules() {
-        List<String> titles = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections").getKeys();
-        HashMap<String, String> ruleList = new HashMap<>();
-        String ruleIdentifier = "1.1";
-        for (String title : titles) {
-            List<String> sectRuleIds = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections." + title).getKeys();
-            for (String sectRuleId : sectRuleIds) {
-                String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
-                String ruleIdentifierArg1 = ruleIdentifier.split("\\.")[1];
-                String sectRule = Main.getInstance().getConfig().getString("Rules.Sections." + title + "." + sectRuleId);
-                ruleList.put(ruleIdentifier, sectRule);
-                ruleIdentifier = ruleIdentifierArg0 + "." + (Integer.parseInt(ruleIdentifierArg1) + 1);
-            }
-            String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
-            ruleIdentifier = (Integer.parseInt(ruleIdentifierArg0) + 1) + ".1";
-        }
         TreeMap<String, String> rulesSorted = new TreeMap<>((s1, s2) -> {
             String firstRuleIdentifierArg0 = s1.split("\\.")[0];
             String firstRuleIdentifierArg1 = s1.split("\\.")[1];
@@ -163,6 +158,40 @@ public class API {
             if (secondRuleArg0 > firstRuleArg0) return -1;
             return Integer.compare(firstRuleArg1, secondRuleArg1);
         });
+        
+        ConfigurationSection sectionsConfig = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections");
+        if (sectionsConfig == null) {
+            // No rules section exists, return empty map
+            return rulesSorted;
+        }
+        
+        List<String> titles = sectionsConfig.getKeys();
+        if (titles == null || titles.isEmpty()) {
+            return rulesSorted;
+        }
+        
+        HashMap<String, String> ruleList = new HashMap<>();
+        String ruleIdentifier = "1.1";
+        for (String title : titles) {
+            ConfigurationSection sectionConfig = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections." + title);
+            if (sectionConfig == null) continue;
+            
+            List<String> sectRuleIds = sectionConfig.getKeys();
+            if (sectRuleIds == null) continue;
+            
+            for (String sectRuleId : sectRuleIds) {
+                String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
+                String ruleIdentifierArg1 = ruleIdentifier.split("\\.")[1];
+                String sectRule = Main.getInstance().getConfig().getString("Rules.Sections." + title + "." + sectRuleId);
+                if (sectRule != null) {
+                    ruleList.put(ruleIdentifier, sectRule);
+                    ruleIdentifier = ruleIdentifierArg0 + "." + (Integer.parseInt(ruleIdentifierArg1) + 1);
+                }
+            }
+            String ruleIdentifierArg0 = ruleIdentifier.split("\\.")[0];
+            ruleIdentifier = (Integer.parseInt(ruleIdentifierArg0) + 1) + ".1";
+        }
+        
         rulesSorted.putAll(ruleList);
         return rulesSorted;
     }
@@ -254,8 +283,11 @@ public class API {
             stmt.setLong(1, mem.getIdLong());
             stmt.execute();
             ResultSet res = stmt.getResultSet();
-            res.next();
-            return res.getInt("points");
+            if (res.next()) {
+                return res.getInt("points");
+            }
+            // User doesn't have a points entry yet, return 0
+            return 0;
         } catch (SQLException ex) {
             Logger.log(ex);
             ex.printStackTrace();

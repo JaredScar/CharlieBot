@@ -21,17 +21,20 @@ public class PointsCommand {
         if (mem == null || mem.getUser().isBot()) return;
         
         String subcommand = evt.getSubcommandName();
+        // Discord requires a subcommand when subcommands are registered
+        // If somehow null, default to showing points
         if (subcommand == null) {
-            // Show user's points
             showUserPoints(evt, mem);
             return;
         }
         
         switch (subcommand.toLowerCase()) {
+            case "view" -> showUserPoints(evt, mem);
             case "give" -> givePoints(evt, mem);
             case "leaderboard" -> showLeaderboard(evt, mem);
             case "store" -> showStore(evt, mem);
             case "redeem" -> redeemItem(evt, mem);
+            default -> showUserPoints(evt, mem); // Fallback to showing points
         }
     }
     

@@ -156,13 +156,29 @@ public class TicketManager extends ListenerAdapter {
     public void onButtonInteraction(ButtonInteractionEvent evt) {
         Member mem = evt.getMember();
         if (mem == null || mem.getUser().isBot()) {
-            evt.reply("❌ Error: Unable to process button interaction.").setEphemeral(true).queue();
-            return;
+            return; // Let other handlers process this
         }
         
         String buttonId = evt.getButton().getId();
         if (buttonId == null) {
-            evt.reply("❌ Error: Invalid button.").setEphemeral(true).queue();
+            return; // Let other handlers process this
+        }
+        
+        // Check if this is a ticket-related button, if not, let other handlers process it
+        // Punishment buttons contain "RuleSelectConfirm" or "RuleSelectDeny", so skip those
+        if (buttonId.contains("RuleSelectConfirm") || buttonId.contains("RuleSelectDeny")) {
+            // This is a punishment button, let other handlers process it
+            return;
+        }
+        
+        // Only process ticket-related buttons
+        if (!buttonId.equals("closeAndSaveTicket") && 
+            !buttonId.equals("lockTicket") && 
+            !buttonId.equals("unlockTicket") &&
+            !buttonId.startsWith("confirm|") &&
+            !buttonId.startsWith("deny|") &&
+            !buttonId.startsWith("closeAndSaveTicket|")) {
+            // Not a ticket button, let other handlers process it
             return;
         }
         

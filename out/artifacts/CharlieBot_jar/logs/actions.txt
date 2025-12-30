@@ -19,3 +19,65 @@ Performed by: badger.jar#0000
 Performed by: badger.jar#0000
 Reason: test
 ----------------------
+[2025-12-30 13:23:59] CREATE_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:24:24] LOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:24:31] UNLOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:24:40] CLOSE_TICKET:
+Performed by: badger.jar#0000
+Reason: test
+----------------------
+[2025-12-30 13:32:22] CREATE_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:36:29] LOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:36:32] UNLOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:39:41] TICKET_ADD_MEMBER:
+Performed by: badger.jar#0000
+Performed on: badger342#0000
+----------------------
+[2025-12-30 13:39:52] TICKET_REMOVE_MEMBER:
+Performed by: badger.jar#0000
+Performed on: badger342#0000
+----------------------
+[2025-12-30 13:40:00] LOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:40:04] UNLOCK_TICKET:
+Performed by: badger.jar#0000
+----------------------
+[2025-12-30 13:40:08] CLOSE_TICKET:
+Performed by: badger.jar#0000
+
+----------------------
+[2025-12-30 13:51:59] WARN_CREATE:
+Performed by: badger.jar#0000
+Performed on: badger342#0000
+Broken Rules: 2.2
+Reason: Underage test
+----------------------
+[2025-12-30 13:52:58] LOCKDOWN_START:
+Performed by: badger.jar#0000
+Reason: Test
+----------------------
+[2025-12-30 13:53:13] LOCKDOWN_END:
+Performed by: badger.jar#0000
+Reason: Disable
+----------------------
+[2025-12-30 13:58:12] STICKY_CREATE:
+Performed by: badger.jar#0000
+Reason: Test
+----------------------
+[2025-12-30 13:58:35] STICKY_REMOVE:
+Performed by: badger.jar#0000
+Reason: N/A
+----------------------
