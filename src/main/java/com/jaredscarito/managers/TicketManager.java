@@ -240,24 +240,24 @@ public class TicketManager extends ListenerAdapter {
             
             switch (params[0].toLowerCase()) {
                 case "confirm":
-                    // Acknowledge the interaction immediately
-                    evt.deferReply().queue();
+                    // Acknowledge the interaction immediately with ephemeral reply
+                    evt.deferReply(true).queue();
                     
                     Guild guild = evt.getJDA().getGuildById(getConfigValue("Bot.Guild"));
                     if (guild == null) {
-                        evt.getHook().sendMessage("❌ Error: Guild not found.").setEphemeral(true).queue();
+                        evt.getHook().editOriginal("❌ Error: Guild not found.").queue();
                         return;
                     }
                     
                     Category category = guild.getCategoryById(discCategory);
                     if (category == null) {
-                        evt.getHook().sendMessage("❌ Error: Ticket category not found. Please contact an administrator.").setEphemeral(true).queue();
+                        evt.getHook().editOriginal("❌ Error: Ticket category not found. Please contact an administrator.").queue();
                         return;
                     }
                     
                     Connection conn = Main.getInstance().getSqlHelper().getConn();
                     if (conn == null) {
-                        evt.getHook().sendMessage("❌ Error: Database connection unavailable.").setEphemeral(true).queue();
+                        evt.getHook().editOriginal("❌ Error: Database connection unavailable.").queue();
                         return;
                     }
                     try (PreparedStatement prep = conn.prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
@@ -276,9 +276,8 @@ public class TicketManager extends ListenerAdapter {
                                     this.addMember(textChan, mem.getIdLong());
                                     // Add managers/roles with access to the ticket
                                     this.addManagersToTicket(textChan, params[1]);
-                                    // Delete the original deferred reply and send ephemeral response (only visible to the user)
-                                    evt.getHook().deleteOriginal().queue();
-                                    evt.getHook().sendMessage("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setEphemeral(true).queue();
+                                    // Edit the ephemeral deferred reply (only visible to the user)
+                                    evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
                                     API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
                                         Connection conn2 = Main.getInstance().getSqlHelper().getConn();
                                         if (conn2 != null) {
@@ -300,17 +299,17 @@ public class TicketManager extends ListenerAdapter {
                                         Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                     }
                                 }, (error) -> {
-                                    evt.getHook().sendMessage("❌ Error: Failed to create ticket channel: " + error.getMessage()).setEphemeral(true).queue();
+                                    evt.getHook().editOriginal("❌ Error: Failed to create ticket channel: " + error.getMessage()).queue();
                                     error.printStackTrace();
                                 });
                             } else {
-                                evt.getHook().sendMessage("❌ Error: Failed to create ticket in database.").setEphemeral(true).queue();
+                                evt.getHook().editOriginal("❌ Error: Failed to create ticket in database.").queue();
                             }
                         }
                     } catch (SQLException ex) {
                         Logger.log(ex);
                         ex.printStackTrace();
-                        evt.getHook().sendMessage("❌ Error: Database error occurred while creating ticket.").setEphemeral(true).queue();
+                        evt.getHook().editOriginal("❌ Error: Database error occurred while creating ticket.").queue();
                     }
                     break;
                 case "deny":
