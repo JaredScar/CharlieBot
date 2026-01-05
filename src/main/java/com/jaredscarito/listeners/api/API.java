@@ -78,8 +78,8 @@ public class API {
 
     public void logPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `punishments` (`discord_id`, `datetime`, `ruleIds_broken`, `lastKnownName`, `lastKnownAvatar`, `punishment_type`, `punishment_length`, `reason`, `punished_by`, `punished_by_lastKnownName`, `punished_by_lastKnownAvatar`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if (conn == null) return;
+        try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO `punishments` (`discord_id`, `datetime`, `ruleIds_broken`, `lastKnownName`, `lastKnownAvatar`, `punishment_type`, `punishment_length`, `reason`, `punished_by`, `punished_by_lastKnownName`, `punished_by_lastKnownAvatar`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             stmt.setLong(1, punishedMember.getIdLong());
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime now = LocalDateTime.now(ZoneId.of("America/New_York"));
@@ -102,41 +102,42 @@ public class API {
 
     public List<PunishmentData> getAllPunishmentData(long discordId) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return new ArrayList<>();
         List<PunishmentData> punishments = new ArrayList<>();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `punishments` WHERE `discord_id` = ?");
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `punishments` WHERE `discord_id` = ?")) {
             stmt.setLong(1, discordId);
-            ResultSet res = stmt.executeQuery();
-            while (res.next()) {
-                int pid = res.getInt("pid");
-                Date datetime = res.getDate("datetime");
-                String ruleIds = res.getString("ruleIds_broken");
-                String lastKnownName = res.getString("lastKnownName");
-                String lastKnownAvatar = res.getString("lastKnownAvatar");
-                String punishmentTypeStr = res.getString("punishment_type");
-                PunishmentType punishmentType = PunishmentType.valueOf(punishmentTypeStr);
-                String punishmentLength = res.getString("punishment_length");
-                String reason = res.getString("reason");
-                long punishedBy = res.getLong("punished_by");
-                String punishedByLastKnownName = res.getString("punished_by_lastKnownName");
-                String punishedByLastKnownAvatar = res.getString("punished_by_lastKnownAvatar");
-                boolean deleted = res.getBoolean("deleted");
-                PunishmentData pd = new PunishmentData(
-                        pid,
-                        discordId,
-                        datetime,
-                        ruleIds,
-                        lastKnownName,
-                        lastKnownAvatar,
-                        punishmentType,
-                        punishmentLength,
-                        reason,
-                        punishedBy,
-                        punishedByLastKnownName,
-                        punishedByLastKnownAvatar,
-                        deleted
-                );
-                punishments.add(pd);
+            try (ResultSet res = stmt.executeQuery()) {
+                while (res.next()) {
+                    int pid = res.getInt("pid");
+                    Date datetime = res.getDate("datetime");
+                    String ruleIds = res.getString("ruleIds_broken");
+                    String lastKnownName = res.getString("lastKnownName");
+                    String lastKnownAvatar = res.getString("lastKnownAvatar");
+                    String punishmentTypeStr = res.getString("punishment_type");
+                    PunishmentType punishmentType = PunishmentType.valueOf(punishmentTypeStr);
+                    String punishmentLength = res.getString("punishment_length");
+                    String reason = res.getString("reason");
+                    long punishedBy = res.getLong("punished_by");
+                    String punishedByLastKnownName = res.getString("punished_by_lastKnownName");
+                    String punishedByLastKnownAvatar = res.getString("punished_by_lastKnownAvatar");
+                    boolean deleted = res.getBoolean("deleted");
+                    PunishmentData pd = new PunishmentData(
+                            pid,
+                            discordId,
+                            datetime,
+                            ruleIds,
+                            lastKnownName,
+                            lastKnownAvatar,
+                            punishmentType,
+                            punishmentLength,
+                            reason,
+                            punishedBy,
+                            punishedByLastKnownName,
+                            punishedByLastKnownAvatar,
+                            deleted
+                    );
+                    punishments.add(pd);
+                }
             }
         } catch (SQLException e) {
             Logger.log(e);
@@ -199,13 +200,13 @@ public class API {
     public String getStickyMessage(TextChannel chan) {
         long id = chan.getIdLong();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT `message` FROM `stickies` WHERE `channel_id` = ?");
+        if (conn == null) return "";
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `message` FROM `stickies` WHERE `channel_id` = ?")) {
             stmt.setLong(1, id);
-            stmt.execute();
-            ResultSet rs = stmt.getResultSet();
-            if (rs.next())
-                return rs.getString("message");
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getString("message");
+            }
         } catch (SQLException ex) {
             Logger.log(ex);
             ex.printStackTrace();
@@ -216,14 +217,14 @@ public class API {
     public HashMap<Long, String> getStickyMessages() {
         HashMap<Long, String> stickies = new HashMap<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `stickies`");
-            stmt.execute();
-            ResultSet rs = stmt.getResultSet();
-            while (rs.next()) {
-                long channelId = rs.getLong("channel_id");
-                String msg = rs.getString("message");
-                stickies.put(channelId, msg);
+        if (conn == null) return stickies;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `stickies`")) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    long channelId = rs.getLong("channel_id");
+                    String msg = rs.getString("message");
+                    stickies.put(channelId, msg);
+                }
             }
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -234,10 +235,10 @@ public class API {
 
     public boolean addPoints(Member mem, int points) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `points` (`discord_id`, `lastKnownName`, " +
-                    "`lastKnownAvatar`, `points`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
-                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` + ?");
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO `points` (`discord_id`, `lastKnownName`, " +
+                "`lastKnownAvatar`, `points`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
+                "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` + ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
             String avatarUrl = mem.getUser().getAvatarUrl();
@@ -258,9 +259,9 @@ public class API {
     }
     public boolean removePoints(Member mem, int points) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("UPDATE `points` SET " +
-                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` - ? WHERE `discord_id` = ?");
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("UPDATE `points` SET " +
+                "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` - ? WHERE `discord_id` = ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
             String avatarUrl = mem.getUser().getAvatarUrl();
@@ -278,13 +279,13 @@ public class API {
     }
     public int getPoints(Member mem) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT `points` FROM `points` WHERE `discord_id` = ?");
+        if (conn == null) return 0;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `points` FROM `points` WHERE `discord_id` = ?")) {
             stmt.setLong(1, mem.getIdLong());
-            stmt.execute();
-            ResultSet res = stmt.getResultSet();
-            if (res.next()) {
-                return res.getInt("points");
+            try (ResultSet res = stmt.executeQuery()) {
+                if (res.next()) {
+                    return res.getInt("points");
+                }
             }
             // User doesn't have a points entry yet, return 0
             return 0;
@@ -296,10 +297,10 @@ public class API {
     }
     public boolean addRankExp(Member mem, int exp) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `ranking` (`discord_id`, `lastKnownName`, " +
-                    "`lastKnownAvatar`, `exp`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
-                    "`lastKnownName` = ?, `lastKnownAvatar` = ?, `exp` = `exp` + ?");
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO `ranking` (`discord_id`, `lastKnownName`, " +
+                "`lastKnownAvatar`, `exp`) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE " +
+                "`lastKnownName` = ?, `lastKnownAvatar` = ?, `exp` = `exp` + ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
             String avatarUrl = mem.getUser().getAvatarUrl();
@@ -320,20 +321,20 @@ public class API {
     }
     public int getRank(Member mem) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT `exp` FROM `ranking` WHERE `discord_id` = ?");
+        if (conn == null) return 1;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `exp` FROM `ranking` WHERE `discord_id` = ?")) {
             stmt.setLong(1, mem.getIdLong());
-            stmt.execute();
-            ResultSet res = stmt.getResultSet();
-            if (!res.next()) return 1;
-            int exp = res.getInt("exp");
-            int rank = 1;
-            for (int ranking = 1; ranking < 9999; ranking++) {
-                if (ranking * ranking * ranking > exp)
-                    break;
-                rank++;
+            try (ResultSet res = stmt.executeQuery()) {
+                if (!res.next()) return 1;
+                int exp = res.getInt("exp");
+                int rank = 1;
+                for (int ranking = 1; ranking < 9999; ranking++) {
+                    if (ranking * ranking * ranking > exp)
+                        break;
+                    rank++;
+                }
+                return rank;
             }
-            return rank;
         } catch (SQLException ex) {
             Logger.log(ex);
             ex.printStackTrace();
@@ -342,9 +343,9 @@ public class API {
     }
     public boolean addSticky(TextChannel chan, String msg) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("INSERT INTO `stickies` (`channel_id`, `message`) " +
-                    "VALUES (?, ?) ON DUPLICATE KEY UPDATE `message` = ?");
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO `stickies` (`channel_id`, `message`) " +
+                "VALUES (?, ?) ON DUPLICATE KEY UPDATE `message` = ?")) {
             stmt.setLong(1, chan.getIdLong());
             stmt.setString(2, msg);
             stmt.setString(3, msg);
@@ -358,8 +359,8 @@ public class API {
     }
     public boolean removeSticky(TextChannel chan) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement stmt = conn.prepareStatement("DELETE FROM `stickies` WHERE `channel_id` = ?");
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM `stickies` WHERE `channel_id` = ?")) {
             stmt.setLong(1, chan.getIdLong());
             stmt.execute();
             return true;

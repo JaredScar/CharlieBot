@@ -242,15 +242,15 @@ public class PointsCommand {
     private static List<LeaderboardEntry> getLeaderboard() {
         List<LeaderboardEntry> leaderboard = new ArrayList<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return leaderboard;
         
-        try {
-            PreparedStatement stmt = conn.prepareStatement("SELECT `lastKnownName`, `points` FROM `points` ORDER BY `points` DESC LIMIT 10");
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                String name = rs.getString("lastKnownName");
-                int points = rs.getInt("points");
-                leaderboard.add(new LeaderboardEntry(name, points));
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `lastKnownName`, `points` FROM `points` ORDER BY `points` DESC LIMIT 10")) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("lastKnownName");
+                    int points = rs.getInt("points");
+                    leaderboard.add(new LeaderboardEntry(name, points));
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();

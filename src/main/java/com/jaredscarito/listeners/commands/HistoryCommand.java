@@ -110,9 +110,9 @@ public class HistoryCommand {
     }
     
     private static boolean markPunishmentsAsDeleted(long discordId) {
-        try {
-            var conn = Main.getInstance().getSqlHelper().getConn();
-            var stmt = conn.prepareStatement("UPDATE `punishments` SET `deleted` = 1 WHERE `discord_id` = ?");
+        var conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (var stmt = conn.prepareStatement("UPDATE `punishments` SET `deleted` = 1 WHERE `discord_id` = ?")) {
             stmt.setLong(1, discordId);
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;

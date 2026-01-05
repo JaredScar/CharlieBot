@@ -64,20 +64,24 @@ public class Main {
     public TicketManager getTicketManager() {
         return ticketManager;
     }
+    private static SQLHelper sqlHelperInstance = null;
+    
     public SQLHelper getSqlHelper() {
         String host = getConfig().getString("Database.Host");
         int port = getConfig().getInt("Database.Port");
         String username = getConfig().getString("Database.Username");
         String password = getConfig().getString("Database.Password");
         String db = getConfig().getString("Database.DB");
-        SQLHelper helper = null;
         try {
-            helper = new SQLHelper(host, port, db, username, password);
+            if (sqlHelperInstance == null) {
+                sqlHelperInstance = SQLHelper.getInstance(host, port, db, username, password);
+            }
+            return sqlHelperInstance;
         } catch (SQLException ex) {
             Logger.log(ex);
             ex.printStackTrace();
+            return null;
         }
-        return helper;
     }
 
     private static void addOption(CommandCreateAction commandCreateAction, SubcommandData subcommandData, String optionType, String optionLabel, String optionDesc, boolean required) {

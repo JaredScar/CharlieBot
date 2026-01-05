@@ -78,13 +78,14 @@ public class TicketManager extends ListenerAdapter {
     }
 
     public String getTicketTypeById(long id) {
-        try {
-            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `ticket_type` FROM `tickets` WHERE `channel_id` = ?");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return null;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `ticket_type` FROM `tickets` WHERE `channel_id` = ?")) {
             stmt.setLong(1, id);
-            stmt.execute();
-            ResultSet rs = stmt.getResultSet();
-            if (rs.next())
-                return rs.getString("ticket_type");
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getString("ticket_type");
+            }
         } catch (SQLException e) {
             Logger.log(e);
             e.printStackTrace();
@@ -253,47 +254,52 @@ public class TicketManager extends ListenerAdapter {
                         return;
                     }
                     
-                    try {
-                        PreparedStatement prep = Main.getInstance().getSqlHelper().getConn()
-                                .prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
-                                        new String[] {"ticket_id"});
+                    Connection conn = Main.getInstance().getSqlHelper().getConn();
+                    if (conn == null) {
+                        evt.getHook().sendMessage("❌ Error: Database connection unavailable.").setEphemeral(true).queue();
+                        return;
+                    }
+                    try (PreparedStatement prep = conn.prepareStatement("INSERT INTO `tickets` (`ticket_owner`, `ticket_type`, `creation_date`, `locked`) VALUES (?, ?, ?, ?)",
+                            new String[] {"ticket_id"})) {
                         prep.setLong(1, mem.getIdLong());
                         prep.setString(2, params[1]);
                         prep.setString(3, getCurrentDatetimeString());
                         prep.setInt(4, 0);
                         prep.execute();
-                        ResultSet rs = prep.getGeneratedKeys();
-                        if (rs.next()) {
-                            int ticketId = rs.getInt(1);
-                            String channelName = (categoryIcon != null ? categoryIcon : "🎫") + "--" + evt.getMember().getUser().getName() + "--" + ticketId;
-                            category.createTextChannel(channelName).queue((textChan) -> {
-                                evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
-                                this.addManagersToTicket(textChan, params[1]);
-                                API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
-                                    try {
-                                        PreparedStatement prepared = Main.getInstance().getSqlHelper().getConn()
-                                                .prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?");
-                                        prepared.setLong(1, msg.getIdLong());
-                                        prepared.setLong(2, textChan.getIdLong());
-                                        prepared.setInt(3, ticketId);
-                                        prepared.execute();
-                                    } catch (SQLException ex) {
-                                        Logger.log(ex);
-                                        ex.printStackTrace();
+                        try (ResultSet rs = prep.getGeneratedKeys()) {
+                            if (rs.next()) {
+                                int ticketId = rs.getInt(1);
+                                String channelName = (categoryIcon != null ? categoryIcon : "🎫") + "--" + evt.getMember().getUser().getName() + "--" + ticketId;
+                                category.createTextChannel(channelName).queue((textChan) -> {
+                                    evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
+                                    this.addManagersToTicket(textChan, params[1]);
+                                    API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
+                                        Connection conn2 = Main.getInstance().getSqlHelper().getConn();
+                                        if (conn2 != null) {
+                                            try (PreparedStatement prepared = conn2.prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?")) {
+                                                prepared.setLong(1, msg.getIdLong());
+                                                prepared.setLong(2, textChan.getIdLong());
+                                                prepared.setInt(3, ticketId);
+                                                prepared.execute();
+                                            } catch (SQLException ex) {
+                                                Logger.log(ex);
+                                                ex.printStackTrace();
+                                            }
+                                        }
+                                    });
+                                    if (startMessage != null && startMessage.length() > 0) {
+                                        String newLine = System.getProperty("line.separator");
+                                        String newMsg = startMessage.replace("\\n", newLine);
+                                        textChan.sendMessage(newMsg).queue();
+                                        Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                     }
+                                }, (error) -> {
+                                    evt.getHook().sendMessage("❌ Error: Failed to create ticket channel: " + error.getMessage()).setEphemeral(true).queue();
+                                    error.printStackTrace();
                                 });
-                                if (startMessage != null && startMessage.length() > 0) {
-                                    String newLine = System.getProperty("line.separator");
-                                    String newMsg = startMessage.replace("\\n", newLine);
-                                    textChan.sendMessage(newMsg).queue();
-                                    Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
-                                }
-                            }, (error) -> {
-                                evt.getHook().sendMessage("❌ Error: Failed to create ticket channel: " + error.getMessage()).setEphemeral(true).queue();
-                                error.printStackTrace();
-                            });
-                        } else {
-                            evt.getHook().sendMessage("❌ Error: Failed to create ticket in database.").setEphemeral(true).queue();
+                            } else {
+                                evt.getHook().sendMessage("❌ Error: Failed to create ticket in database.").setEphemeral(true).queue();
+                            }
                         }
                     } catch (SQLException ex) {
                         Logger.log(ex);
@@ -343,8 +349,9 @@ public class TicketManager extends ListenerAdapter {
     }
 
     public boolean deleteTicketFromDB(TextChannel chan) {
-        try {
-            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("DELETE FROM `tickets` WHERE `channel_id` = ?");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM `tickets` WHERE `channel_id` = ?")) {
             stmt.setLong(1, chan.getIdLong());
             stmt.execute();
             return true;
@@ -372,12 +379,14 @@ public class TicketManager extends ListenerAdapter {
     }
 
     public boolean isValidTicket(TextChannel textChannel) {
-        try {
-            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT COUNT(*) as count FROM `tickets` WHERE `channel_id` = ?");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) as count FROM `tickets` WHERE `channel_id` = ?")) {
             stmt.setLong(1, textChannel.getIdLong());
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                if (rs.getInt("count") > 0) return true;
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    if (rs.getInt("count") > 0) return true;
+                }
             }
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -386,8 +395,9 @@ public class TicketManager extends ListenerAdapter {
         return false;
     }
     public boolean lockTicket(TextChannel chan, Member locker) {
-        try {
-            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("UPDATE `tickets` SET `locked` = 1 WHERE `channel_id` = ?");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("UPDATE `tickets` SET `locked` = 1 WHERE `channel_id` = ?")) {
             stmt.setLong(1, chan.getIdLong());
             stmt.execute();
             // It executed, we want to lock the ticket now
@@ -403,23 +413,25 @@ public class TicketManager extends ListenerAdapter {
                     manager.putMemberPermissionOverride(mem.getIdLong(), allows, denies);
             }
             manager.queue();
-            stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?");
-            stmt.setLong(1, chan.getIdLong());
-            stmt.execute();
-            ResultSet rs = stmt.getResultSet();
-            rs.next();
-            long messageId = rs.getLong("message_id");
-            chan.getHistoryFromBeginning(1).queue((hist) -> {
-                Message msg = hist.getMessageById(messageId);
-                Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
-                Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button")).asDisabled();
-                Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button"));
-                if (msg != null) {
-                    // It's not null, we need to edit it
-                    msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
-                    chan.sendMessage("The ticket has been \uD83D\uDD12 locked by " + locker.getAsMention()).queue();
+            try (PreparedStatement stmt2 = conn.prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?")) {
+                stmt2.setLong(1, chan.getIdLong());
+                try (ResultSet rs = stmt2.executeQuery()) {
+                    if (rs.next()) {
+                        long messageId = rs.getLong("message_id");
+                        chan.getHistoryFromBeginning(1).queue((hist) -> {
+                            Message msg = hist.getMessageById(messageId);
+                            Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
+                            Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button")).asDisabled();
+                            Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button"));
+                            if (msg != null) {
+                                // It's not null, we need to edit it
+                                msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
+                                chan.sendMessage("The ticket has been \uD83D\uDD12 locked by " + locker.getAsMention()).queue();
+                            }
+                        });
+                    }
                 }
-            });
+            }
             return true;
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -428,8 +440,9 @@ public class TicketManager extends ListenerAdapter {
         return false;
     }
     public boolean unlockTicket(TextChannel chan, Member unlocker) {
-        try {
-            PreparedStatement stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("UPDATE `tickets` SET `locked` = 0 WHERE `channel_id` = ?");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("UPDATE `tickets` SET `locked` = 0 WHERE `channel_id` = ?")) {
             stmt.setLong(1, chan.getIdLong());
             stmt.execute();
             // It executed and updates 1 row, we want to unlock the ticket now
@@ -445,23 +458,25 @@ public class TicketManager extends ListenerAdapter {
                     manager.putMemberPermissionOverride(mem.getIdLong(), allows, denies);
             }
             manager.queue();
-            stmt = Main.getInstance().getSqlHelper().getConn().prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?");
-            stmt.setLong(1, chan.getIdLong());
-            stmt.execute();
-            ResultSet rs = stmt.getResultSet();
-            rs.next();
-            long messageId = rs.getLong("message_id");
-            chan.getHistoryFromBeginning(1).queue((hist) -> {
-                Message msg = hist.getMessageById(messageId);
-                Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
-                Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button"));
-                Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button")).asDisabled();
-                if (msg != null) {
-                    // It's not null, we need to edit it
-                    msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
-                    chan.sendMessage("The ticket has been \uD83D\uDD13 unlocked by " + unlocker.getAsMention()).queue();
+            try (PreparedStatement stmt2 = conn.prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?")) {
+                stmt2.setLong(1, chan.getIdLong());
+                try (ResultSet rs = stmt2.executeQuery()) {
+                    if (rs.next()) {
+                        long messageId = rs.getLong("message_id");
+                        chan.getHistoryFromBeginning(1).queue((hist) -> {
+                            Message msg = hist.getMessageById(messageId);
+                            Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
+                            Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button"));
+                            Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button")).asDisabled();
+                            if (msg != null) {
+                                // It's not null, we need to edit it
+                                msg.editMessageEmbeds(msg.getEmbeds()).setActionRow(unlockButton, lockButton, closeAndSaveButton).queue();
+                                chan.sendMessage("The ticket has been \uD83D\uDD13 unlocked by " + unlocker.getAsMention()).queue();
+                            }
+                        });
+                    }
                 }
-            });
+            }
             return true;
         } catch (SQLException ex) {
             Logger.log(ex);

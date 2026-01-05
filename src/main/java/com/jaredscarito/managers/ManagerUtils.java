@@ -61,9 +61,9 @@ public class ManagerUtils {
     }
 
     public static boolean handleRolePermissionsOnLockdown(TextChannel chan, List<PermissionOverride> permissionOverrides) {
-        try {
-            Connection conn = Main.getInstance().getSqlHelper().getConn();
-            PreparedStatement prep = conn.prepareStatement("INSERT INTO `lockdown_roles` (`channel_id`, `role_id`, `permission`, `default`) VALUES (?, ?, ?, ?)");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement prep = conn.prepareStatement("INSERT INTO `lockdown_roles` (`channel_id`, `role_id`, `permission`, `default`) VALUES (?, ?, ?, ?)")) {
             Collection<Permission> allows = new ArrayList<>();
             Collection<Permission> denies = new ArrayList<>();
             denies.add(Permission.MESSAGE_SEND);
@@ -104,23 +104,24 @@ public class ManagerUtils {
             private String permission;
             private boolean defaultValue;
         }
-        try {
-            Connection conn = Main.getInstance().getSqlHelper().getConn();
-            PreparedStatement prep = conn.prepareStatement("SELECT * FROM `lockdown_roles` WHERE `channel_id` = ?;");
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement prep = conn.prepareStatement("SELECT * FROM `lockdown_roles` WHERE `channel_id` = ?;")) {
             prep.setLong(1, chan.getIdLong());
-            ResultSet rs = prep.executeQuery();
             List<LockdownRole> lockdownRoles = new ArrayList<>();
-            while (rs.next()) {
-                LockdownRole lr = new LockdownRole();
-                long channelId = rs.getLong("channel_id");
-                long roleId = rs.getLong("role_id");
-                String permission = rs.getString("permission");
-                boolean defaultValue = rs.getBoolean("default");
-                lr.setChannelId(channelId);
-                lr.setRoleId(roleId);
-                lr.setPermission(permission);
-                lr.setDefaultValue(defaultValue);
-                lockdownRoles.add(lr);
+            try (ResultSet rs = prep.executeQuery()) {
+                while (rs.next()) {
+                    LockdownRole lr = new LockdownRole();
+                    long channelId = rs.getLong("channel_id");
+                    long roleId = rs.getLong("role_id");
+                    String permission = rs.getString("permission");
+                    boolean defaultValue = rs.getBoolean("default");
+                    lr.setChannelId(channelId);
+                    lr.setRoleId(roleId);
+                    lr.setPermission(permission);
+                    lr.setDefaultValue(defaultValue);
+                    lockdownRoles.add(lr);
+                }
             }
             TextChannelManager manager = chan.getManager();
             Map<Long, List<LockdownRole>> lockdownRolesByRoleId = lockdownRoles.stream()
@@ -182,21 +183,24 @@ public class ManagerUtils {
         String pNameAdjusted = pName.toUpperCase().charAt(0) + pName.substring(1);
         HashMap<Member, List<PunishmentData>> punishmentData = new HashMap<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `discord_id` = ?");
+        if (conn == null) {
+            API.getInstance().sendErrorMessage(evt, opt.getAsMember(), "Error: Database connection unavailable", "Unable to connect to database...");
+            return;
+        }
+        try (PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `discord_id` = ?")) {
             prep.setString(1, pName.toUpperCase());
             prep.setLong(2, opt.getAsMember().getIdLong());
-            prep.execute();
-            ResultSet res = prep.getResultSet();
-            while (res.next()) {
-                int pid = res.getInt("pid");
-                String datetime = res.getString("datetime");
-                String rulesBroken = res.getString("ruleIds_broken");
-                String punishmentLength = res.getString("punishment_length");
-                String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
-                String reason = res.getString("reason");
-                PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
-                punishmentData.computeIfAbsent(opt.getAsMember(), v -> new ArrayList<>()).add(pData);
+            try (ResultSet res = prep.executeQuery()) {
+                while (res.next()) {
+                    int pid = res.getInt("pid");
+                    String datetime = res.getString("datetime");
+                    String rulesBroken = res.getString("ruleIds_broken");
+                    String punishmentLength = res.getString("punishment_length");
+                    String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
+                    String reason = res.getString("reason");
+                    PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
+                    punishmentData.computeIfAbsent(opt.getAsMember(), v -> new ArrayList<>()).add(pData);
+                }
             }
         } catch (SQLException e) {
             Logger.log(e);
@@ -224,20 +228,23 @@ public class ManagerUtils {
         Modal.Builder builder = Modal.create(pName + "Remove" + "|" + beingPunished.getId() + "|" + pid, "Remove a " + pNameAdjusted + " punishment from history");
         HashMap<Member, List<PunishmentData>> punishmentData = new HashMap<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        try {
-            PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `pid` = ?");
+        if (conn == null) {
+            API.getInstance().sendErrorMessage(evt, beingPunished, "Error: Database connection unavailable", "Unable to connect to database...");
+            return;
+        }
+        try (PreparedStatement prep = conn.prepareStatement("SELECT `pid`, `datetime`, `ruleIds_broken`, `reason`, `punishment_length`, `punished_by_lastKnownName` FROM `punishments` WHERE `punishment_type` = ? AND `pid` = ?")) {
             prep.setString(1, pName.toUpperCase());
             prep.setInt(2, pid);
-            prep.execute();
-            ResultSet res = prep.getResultSet();
-            while (res.next()) {
-                String datetime = res.getString("datetime");
-                String rulesBroken = res.getString("ruleIds_broken");
-                String punishmentLength = res.getString("punishment_length");
-                String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
-                String reason = res.getString("reason");
-                PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
-                punishmentData.computeIfAbsent(beingPunished, v -> new ArrayList<>()).add(pData);
+            try (ResultSet res = prep.executeQuery()) {
+                while (res.next()) {
+                    String datetime = res.getString("datetime");
+                    String rulesBroken = res.getString("ruleIds_broken");
+                    String punishmentLength = res.getString("punishment_length");
+                    String punished_by_lastKnownName = res.getString("punished_by_lastKnownName");
+                    String reason = res.getString("reason");
+                    PunishmentData pData = new PunishmentData(pid, datetime, rulesBroken, punishmentLength, punished_by_lastKnownName, reason);
+                    punishmentData.computeIfAbsent(beingPunished, v -> new ArrayList<>()).add(pData);
+                }
             }
         } catch (SQLException e) {
             Logger.log(e);
@@ -287,9 +294,13 @@ public class ManagerUtils {
     public static void removePunishment(int pid) throws SQLException {
         String sql = "DELETE FROM `punishments` WHERE `pid` = ?";
         Connection conn = Main.getInstance().getSqlHelper().getConn();
-        PreparedStatement prep = conn.prepareStatement(sql);
-        prep.setInt(1, pid);
-        prep.execute();
+        if (conn == null) {
+            throw new SQLException("Database connection unavailable");
+        }
+        try (PreparedStatement prep = conn.prepareStatement(sql)) {
+            prep.setInt(1, pid);
+            prep.execute();
+        }
     }
 
     /**
