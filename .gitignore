@@ -39,3 +39,4 @@ build/
 
 ### Custom ###
 src/main/resources/config.yml
+out/artifacts/CharlieBot_jar/config.yml
