@@ -1,5 +1,6 @@
 package com.jaredscarito.managers;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -271,8 +272,13 @@ public class TicketManager extends ListenerAdapter {
                                 int ticketId = rs.getInt(1);
                                 String channelName = (categoryIcon != null ? categoryIcon : "🎫") + "--" + evt.getMember().getUser().getName() + "--" + ticketId;
                                 category.createTextChannel(channelName).queue((textChan) -> {
-                                    evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
+                                    // Add the ticket creator with access to the ticket
+                                    this.addMember(textChan, mem.getIdLong());
+                                    // Add managers/roles with access to the ticket
                                     this.addManagersToTicket(textChan, params[1]);
+                                    // Delete the original deferred reply and send ephemeral response (only visible to the user)
+                                    evt.getHook().deleteOriginal().queue();
+                                    evt.getHook().sendMessage("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).setEphemeral(true).queue();
                                     API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
                                         Connection conn2 = Main.getInstance().getSqlHelper().getConn();
                                         if (conn2 != null) {
