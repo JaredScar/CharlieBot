@@ -271,37 +271,48 @@ public class TicketManager extends ListenerAdapter {
                             if (rs.next()) {
                                 int ticketId = rs.getInt(1);
                                 String channelName = (categoryIcon != null ? categoryIcon : "🎫") + "--" + evt.getMember().getUser().getName() + "--" + ticketId;
-                                category.createTextChannel(channelName).queue((textChan) -> {
-                                    // Add the ticket creator with access to the ticket
-                                    this.addMember(textChan, mem.getIdLong());
-                                    // Add managers/roles with access to the ticket
-                                    this.addManagersToTicket(textChan, params[1]);
-                                    // Edit the ephemeral deferred reply (only visible to the user)
-                                    evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
-                                    API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
-                                        Connection conn2 = Main.getInstance().getSqlHelper().getConn();
-                                        if (conn2 != null) {
-                                            try (PreparedStatement prepared = conn2.prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?")) {
-                                                prepared.setLong(1, msg.getIdLong());
-                                                prepared.setLong(2, textChan.getIdLong());
-                                                prepared.setInt(3, ticketId);
-                                                prepared.execute();
-                                            } catch (SQLException ex) {
-                                                Logger.log(ex);
-                                                ex.printStackTrace();
+                                
+                                // Prepare permissions for the ticket creator
+                                List<Permission> allows = new ArrayList<>();
+                                List<Permission> denies = new ArrayList<>();
+                                allows.add(Permission.MESSAGE_SEND);
+                                allows.add(Permission.MESSAGE_SEND_IN_THREADS);
+                                allows.add(Permission.MESSAGE_ADD_REACTION);
+                                allows.add(Permission.MESSAGE_HISTORY);
+                                allows.add(Permission.VIEW_CHANNEL);
+                                
+                                // Create channel with member permissions set from the start
+                                category.createTextChannel(channelName)
+                                    .addMemberPermissionOverride(mem.getIdLong(), allows, denies)
+                                    .queue((textChan) -> {
+                                        // Add managers/roles with access to the ticket
+                                        this.addManagersToTicket(textChan, params[1]);
+                                        // Edit the ephemeral deferred reply (only visible to the user)
+                                        evt.getHook().editOriginal("✅ Your " + categoryLabel + " ticket has been created: " + textChan.getAsMention()).queue();
+                                        API.getInstance().createTicketCloseMessage(textChan, evt.getMember()).queue((msg) -> {
+                                            Connection conn2 = Main.getInstance().getSqlHelper().getConn();
+                                            if (conn2 != null) {
+                                                try (PreparedStatement prepared = conn2.prepareStatement("UPDATE `tickets` SET `message_id` = ?, `channel_id` = ? WHERE `ticket_id` = ?")) {
+                                                    prepared.setLong(1, msg.getIdLong());
+                                                    prepared.setLong(2, textChan.getIdLong());
+                                                    prepared.setInt(3, ticketId);
+                                                    prepared.execute();
+                                                } catch (SQLException ex) {
+                                                    Logger.log(ex);
+                                                    ex.printStackTrace();
+                                                }
                                             }
+                                        });
+                                        if (startMessage != null && startMessage.length() > 0) {
+                                            String newLine = System.getProperty("line.separator");
+                                            String newMsg = startMessage.replace("\\n", newLine);
+                                            textChan.sendMessage(newMsg).queue();
+                                            Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                         }
+                                    }, (error) -> {
+                                        evt.getHook().editOriginal("❌ Error: Failed to create ticket channel: " + error.getMessage()).queue();
+                                        error.printStackTrace();
                                     });
-                                    if (startMessage != null && startMessage.length() > 0) {
-                                        String newLine = System.getProperty("line.separator");
-                                        String newMsg = startMessage.replace("\\n", newLine);
-                                        textChan.sendMessage(newMsg).queue();
-                                        Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
-                                    }
-                                }, (error) -> {
-                                    evt.getHook().editOriginal("❌ Error: Failed to create ticket channel: " + error.getMessage()).queue();
-                                    error.printStackTrace();
-                                });
                             } else {
                                 evt.getHook().editOriginal("❌ Error: Failed to create ticket in database.").queue();
                             }

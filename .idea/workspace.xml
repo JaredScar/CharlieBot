@@ -9,12 +9,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Added commands.yml for usage in the HelpCommand">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/CharlieBot.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/CharlieBot.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/logs/actions.txt" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/CharlieBot_jar/logs/actions.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/TicketManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/jaredscarito/managers/TicketManager.java" afterDir="false" />
-    </list>
+    <list default="true" id="ed03d7cb-d881-44da-b8b3-ebb250043fdd" name="Changes" comment="Added commands.yml for usage in the HelpCommand" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -100,6 +95,8 @@
       <recent name="C:\Users\Badger\IdeaProjects\CharlieBot\out\artifacts\CharlieBot_jar" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Axeex\IdeaProjects\CharlieBot\out\artifacts\CharlieBot_jar\config" />
+      <recent name="C:\Users\Axeex\IdeaProjects\CharlieBot\out\artifacts\CharlieBot_jar" />
       <recent name="C:\Users\Badger\IdeaProjects\CharlieBot\out\artifacts\CharlieBot_jar\assets" />
       <recent name="C:\Users\Badger\IdeaProjects\CharlieBot\out\artifacts\CharlieBot_jar\config" />
     </key>
@@ -194,7 +191,7 @@
       <workItem from="1763351196754" duration="9000" />
       <workItem from="1767115544991" duration="11000" />
       <workItem from="1767115583656" duration="5835000" />
-      <workItem from="1767580427787" duration="1327000" />
+      <workItem from="1767580427787" duration="1491000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <created>1678587480377</created>
