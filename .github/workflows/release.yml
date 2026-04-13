@@ -1,0 +1,39 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-jar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Build shaded jar
+        run: mvn -q -DskipTests package
+
+      - name: Rename artifact to stable name
+        run: |
+          mkdir -p dist
+          # Maven shade output is typically the main jar shaded output.
+          # We rename whatever jar exists in target/ to CharlieBot.jar for updater simplicity.
+          JAR_PATH="$(ls -1 target/*.jar 2>/dev/null | head -n 1)"
+          if [ -z "$JAR_PATH" ]; then
+            echo "No jar found in target/"
+            exit 1
+          fi
+          cp "$JAR_PATH" dist/CharlieBot.jar
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/CharlieBot.jar
+

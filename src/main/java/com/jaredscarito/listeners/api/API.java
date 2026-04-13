@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -471,9 +470,10 @@ public class API {
         if (!attachmentsDir.exists()) attachmentsDir.mkdirs();
         
         File logFile = new File("ticket_logs/" + chan.getId() + "-log.html");
+        FileWriter writer = null;
         try {
             logFile.createNewFile();
-            FileWriter writer = new FileWriter(logFile);
+            writer = new FileWriter(logFile);
             writer.write("<!DOCTYPE html>\n" +
                     "<html lang=\"en\">\n" +
                     "<head>\n" +
@@ -535,23 +535,16 @@ public class API {
                     "            <span id=\"hashtag\">#</span><span id=\"channelName\">" + chan.getName() + "</span>\n" +
                     "        </div>\n" +
                     "    </div>");
+            FileWriter writerRef = writer;
             chan.getIterableHistory().takeAsync(5000).thenApply(list -> {
                 Stream<Message> messages = list.stream();
                 for (Message msg : messages.toArray(Message[]::new)) {
                     String author = msg.getAuthor().getAsTag();
                     String message = msg.getContentDisplay();
                     String authorImg = msg.getAuthor().getAvatarUrl();
-                    List<Message.Attachment> attachments = msg.getAttachments();
-                    List<File> files = new ArrayList<>();
-                    for (Message.Attachment attach : attachments) {
-                        CompletableFuture<File> file = attach.downloadToFile();
-                        File attachment = new File("ticket_logs/attachments/" + chan.getId() + "-" + attach.getFileName()
-                                + "." + attach.getFileExtension());
-                        file.complete(attachment);
-                        if (attachment.exists())
-                            files.add(attachment);
-                    }
-                    // TODO Add files to message block
+                    // Attachment support not embedded yet:
+                    // the previous implementation attempted to "complete" futures manually,
+                    // which could corrupt async file generation.
                     String messageBlock = "<div class=\"message-block\">\n" +
                             "        <div class=\"row\">\n" +
                             "            <div class=\"col-auto\">\n" +
@@ -573,7 +566,7 @@ public class API {
                             "            </div>\n" +
                             "        </div></div>";
                     try {
-                        writer.write(messageBlock);
+                        writerRef.write(messageBlock);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -583,8 +576,7 @@ public class API {
                 if (bool) {
                     // It completed, send to Discord
                     try {
-                        writer.write("</div></body></html>");
-                        writer.close();
+                        writerRef.write("</div></body></html>");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -614,6 +606,11 @@ public class API {
         } catch (Exception ex) {
             ex.printStackTrace();
             result.accept(false);
+        } finally {
+            try {
+                if (writer != null) writer.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 }

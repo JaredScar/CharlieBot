@@ -1,6 +1,8 @@
 package com.jaredscarito.main;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -65,6 +67,61 @@ public class Main {
         return ticketManager;
     }
     private static SQLHelper sqlHelperInstance = null;
+
+    private static void appendStartupLog(String line) {
+        try {
+            File logsDir = new File("logs");
+            if (!logsDir.exists()) logsDir.mkdirs();
+            FileWriter writer = new FileWriter(new File(logsDir, "startup.txt"), true);
+            writer.write(line + System.lineSeparator());
+            writer.flush();
+            writer.close();
+        } catch (IOException ignored) {
+            // Avoid crashing startup if we can't write logs.
+        }
+    }
+
+    private boolean validateConfigAndDb() {
+        // Validate only keys required during startup.
+        String[] requiredStringKeys = new String[] {
+                "Bot.Token",
+                "Bot.Guild",
+                "Database.Host",
+                "Database.Username",
+                "Database.Password",
+                "Database.DB",
+                "Bot.Logger.Channel"
+        };
+
+        Integer requiredPort = null;
+        try {
+            int p = getConfig().getInt("Database.Port");
+            requiredPort = (p > 0) ? p : null;
+        } catch (Exception ignored) {}
+
+        String missing = "";
+        for (String key : requiredStringKeys) {
+            String value = getConfig().getString(key);
+            if (value == null || value.trim().isEmpty()) {
+                missing += (missing.isEmpty() ? "" : ", ") + key;
+            }
+        }
+        if (requiredPort == null) {
+            missing += (missing.isEmpty() ? "" : ", ") + "Database.Port";
+        }
+
+        boolean dbConnected = false;
+        try {
+            SQLHelper helper = getSqlHelper();
+            dbConnected = helper != null && helper.isConnected();
+        } catch (Exception ex) {
+            dbConnected = false;
+            Logger.log(ex);
+        }
+
+        appendStartupLog("[startup] configMissing=" + (missing.isEmpty() ? "none" : missing) + ", dbConnected=" + dbConnected);
+        return missing.isEmpty();
+    }
     
     public SQLHelper getSqlHelper() {
         String host = getConfig().getString("Database.Host");
@@ -92,6 +149,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        boolean configOk = main.validateConfigAndDb();
         String token = main.getConfig().getString("Bot.Token");
         JDA jdaInstance = JDABuilder.createDefault(token).enableIntents(
                 GatewayIntent.MESSAGE_CONTENT,
@@ -99,6 +157,9 @@ public class Main {
                 GatewayIntent.GUILD_MEMBERS
         ).setMemberCachePolicy(MemberCachePolicy.ALL).setChunkingFilter(ChunkingFilter.ALL).build();
         jdaInstance.awaitReady();
+        if (!configOk) {
+            appendStartupLog("[startup] WARNING: required config keys are missing; bot may not function correctly.");
+        }
         List<String> commands = getInstance().getConfig().getConfigurationSection("Bot.Commands").getKeys();
         for (String command : commands) {
             String commandLabel = command.toLowerCase();

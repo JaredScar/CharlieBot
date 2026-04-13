@@ -64,11 +64,14 @@ public class ManagerUtils {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         if (conn == null) return false;
         try (PreparedStatement prep = conn.prepareStatement("INSERT INTO `lockdown_roles` (`channel_id`, `role_id`, `permission`, `default`) VALUES (?, ?, ?, ?)")) {
-            Collection<Permission> allows = new ArrayList<>();
-            Collection<Permission> denies = new ArrayList<>();
-            denies.add(Permission.MESSAGE_SEND);
-            denies.add(Permission.MESSAGE_ADD_REACTION);
-            denies.add(Permission.MESSAGE_SEND_IN_THREADS);
+            // When locking down we want to persist the *default* permission values per-role,
+            // then apply the corresponding overrides (deny for lockdown).
+            // We only manage a small set of permissions here.
+            Collection<Permission> denies = List.of(
+                    Permission.MESSAGE_SEND,
+                    Permission.MESSAGE_ADD_REACTION,
+                    Permission.MESSAGE_SEND_IN_THREADS
+            );
             List<String> disregardRoles = Main.getInstance().getConfig().getStringList("Bot.Commands.Lockdown.Requires_Roles");
             TextChannelManager manager = chan.getManager();
             for (PermissionOverride permO : permissionOverrides) {
@@ -77,15 +80,17 @@ public class ManagerUtils {
                 if (disregardRoles.contains(permO.getRole().getId())) continue;
                 prep.setLong(1, chan.getIdLong());
                 prep.setLong(2, roleId);
-                prep.setString(3, "MESSAGE_SEND");
-                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_SEND));
-                prep.execute();
-                prep.setString(3, "MESSAGE_ADD_REACTION");
-                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_ADD_REACTION));
-                prep.execute();
-                prep.setString(3, "MESSAGE_SEND_IN_THREADS");
-                prep.setBoolean(4, permO.getAllowed().contains(Permission.MESSAGE_SEND_IN_THREADS));
-                prep.execute();
+                // Persist each permission's "default" (the pre-lockdown allowed set)
+                // so we can restore it in handleRolePermissionsAfterLockdown.
+                for (Permission managed : denies) {
+                    prep.setString(3, managed.name());
+                    prep.setBoolean(4, permO.getAllowed().contains(managed));
+                    prep.execute();
+                }
+
+                // Apply lockdown overrides: deny the managed permissions unconditionally.
+                // Leave other permissions untouched.
+                Collection<Permission> allows = new ArrayList<>();
                 manager = manager.putRolePermissionOverride(roleId, allows, denies);
             }
             manager.queue();
@@ -309,7 +314,47 @@ public class ManagerUtils {
      * @param evt
      * @param punishmentType
      */
-    public static void clearPunishments(SlashCommandInteractionEvent evt, PunishmentType punishmentType) {}
+    public static void clearPunishments(SlashCommandInteractionEvent evt, PunishmentType punishmentType) {
+        Member mem = evt.getMember();
+        if (mem == null || mem.getUser().isBot()) return;
+        // Note: most commands in this codebase expect the target member under option name "member".
+        OptionMapping opt = evt.getOption("member");
+        if (opt == null || opt.getAsMember() == null) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error: Missing required parameter", "Please specify a `member` option.");
+            return;
+        }
+
+        Member target = opt.getAsMember();
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error: Database connection unavailable", "Unable to connect to database...");
+            return;
+        }
+
+        try {
+            if (punishmentType == null) {
+                try (PreparedStatement prep = conn.prepareStatement("DELETE FROM `punishments` WHERE `discord_id` = ?")) {
+                    prep.setLong(1, target.getIdLong());
+                    prep.execute();
+                }
+            } else {
+                try (PreparedStatement prep = conn.prepareStatement(
+                        "DELETE FROM `punishments` WHERE `punishment_type` = ? AND `discord_id` = ?")) {
+                    prep.setString(1, punishmentType.name().toUpperCase());
+                    prep.setLong(2, target.getIdLong());
+                    prep.execute();
+                }
+            }
+        } catch (SQLException e) {
+            Logger.log(e);
+            e.printStackTrace();
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "Failed to clear punishments.");
+            return;
+        }
+
+        String typeLabel = punishmentType == null ? "all punishments" : (punishmentType.name().toLowerCase() + " punishments");
+        evt.reply("✅ Cleared " + typeLabel + " for " + target.getAsMention() + ".").setEphemeral(true).queue();
+    }
 
     public static void handleStringSelectMenu(StringSelectInteractionEvent evt, String componentId, String punishmentType) {
         List<SelectOption> optionsSelected = evt.getSelectedOptions();
