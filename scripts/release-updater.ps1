@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$Repo,              # e.g. "owner/repo"
+  [string]$Repo = "JaredScar/CharlieBot",              # e.g. "owner/repo"
   [string]$AssetName = "CharlieBot.jar",
   [string]$DownloadDir = "."
 )

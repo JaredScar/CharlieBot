@@ -1,5 +1,5 @@
 param(
-  [string]$Repo = "",           # "owner/repo" for updater checks, optional
+  [string]$Repo = "JaredScar/CharlieBot",           # "owner/repo" for updater checks, optional
   [switch]$AutoUpdate          # when set, updater will check and download newest release
 )
 
