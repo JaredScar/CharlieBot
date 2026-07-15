@@ -438,7 +438,7 @@ public class API {
     public MessageCreateAction createTicketCloseMessage(TextChannel chan, Member ticketCreator) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(getConfigValue("Bot.Tickets.Ticket_Close_Title").replace("{NAME}", ticketCreator.getEffectiveName()));
-        eb.setDescription(getConfigValue("Bot.Ticket.Ticket_Close_Body").replace("{NAME}", ticketCreator.getEffectiveName()));
+        eb.setDescription(getConfigValue("Bot.Tickets.Ticket_Close_Body").replace("{NAME}", ticketCreator.getEffectiveName()));
         Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
         Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button"));
         Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button")).asDisabled();
@@ -568,6 +568,7 @@ public class API {
                     try {
                         writerRef.write(messageBlock);
                     } catch (IOException e) {
+                        Logger.log(e);
                         e.printStackTrace();
                     }
                 }
@@ -578,6 +579,7 @@ public class API {
                     try {
                         writerRef.write("</div></body></html>");
                     } catch (IOException e) {
+                        Logger.log(e);
                         e.printStackTrace();
                     }
                     String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
@@ -588,6 +590,7 @@ public class API {
                                     .addFiles(FileUpload.fromData(logFile)).queue((msg) -> {
                                         logFile.delete();
                                     }, (error) -> {
+                                        Logger.log(error);
                                         System.err.println("Failed to send ticket log to Discord: " + error.getMessage());
                                         error.printStackTrace();
                                     });

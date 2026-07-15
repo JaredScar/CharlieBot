@@ -3,6 +3,8 @@ package com.jaredscarito.logger;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -348,7 +350,7 @@ public class Logger {
             eb.addField("Reason", reason, true);
         logChan.sendMessageEmbeds(eb.build()).queue();
     }
-    public static void log(Exception ex) {
+    public static void log(Throwable ex) {
         File logsDir = new File("logs");
         if (!logsDir.exists()) {
             logsDir.mkdirs();
@@ -363,10 +365,13 @@ public class Logger {
         }
         if (errors.exists()) {
             try {
+                StringWriter sw = new StringWriter();
+                ex.printStackTrace(new PrintWriter(sw));
                 FileWriter writer = new FileWriter(errors, true);
-                writer.write("[" + getCurrentDatetimeString() + "] Error Encountered:\n");
-                writer.write(ex.getMessage());
-                writer.write("\n----------------------\n");
+                writer.write("[" + getCurrentDatetimeString() + "] "
+                        + ex.getClass().getName() + ": " + ex.getMessage() + "\n");
+                writer.write(sw.toString());
+                writer.write("----------------------\n");
                 writer.flush();
                 writer.close();
             } catch (IOException e) {

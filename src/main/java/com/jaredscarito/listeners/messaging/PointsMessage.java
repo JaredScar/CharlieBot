@@ -25,15 +25,15 @@ public class PointsMessage {
             // It already has them, do not add points
             // Check if the time has expired and if so, add points and add them to delay
             Instant lastPointAdded = delayPointAdd.get(mem.getIdLong());
-            Instant allowedNewPointAdd = lastPointAdded.plus(getConfigValueInt("Bot.Messaging.Points.DelayTime"), ChronoUnit.SECONDS);
+            Instant allowedNewPointAdd = lastPointAdded.plus(getConfigValueInt("Bot.Messaging.Points.DebounceTime"), ChronoUnit.SECONDS);
             if (allowedNewPointAdd.isBefore(currentDatetime)) {
-                API.getInstance().addPoints(mem, Main.getInstance().getConfig().getInt("Bot.Messaging.Points.PointsPerMessage"));
-                delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DelayTime"), ChronoUnit.SECONDS));
+                API.getInstance().addPoints(mem, Main.getInstance().getConfig().getInt("Bot.Messaging.Points.PerMessage"));
+                delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DebounceTime"), ChronoUnit.SECONDS));
             }
         } else {
             // It does not have them, add points
             API.getInstance().addPoints(mem, Main.getInstance().getConfig().getInt("Bot.Messaging.Points.PerMessage"));
-            delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DelayTime"), ChronoUnit.SECONDS));
+            delayPointAdd.put(mem.getIdLong(), currentDatetime.plus(getConfigValueInt("Bot.Messaging.Points.DebounceTime"), ChronoUnit.SECONDS));
         }
     }
 

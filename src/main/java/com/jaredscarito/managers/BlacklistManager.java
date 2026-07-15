@@ -12,7 +12,6 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -21,7 +20,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class BlacklistManager extends ListenerAdapter {
     @Override
@@ -45,6 +43,8 @@ public class BlacklistManager extends ListenerAdapter {
         Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
         HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
         List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        if (ruleIds == null) return;
+        rulesSelected.put(evt.getModalId(), null);
         API.getInstance().logPunishment(blacklistUser, evt.getMember(), PunishmentType.BLACKLIST, "", ruleIds, reason);
         evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been blacklisted...").build()).setEphemeral(true).queue();
     }
@@ -93,7 +93,7 @@ public class BlacklistManager extends ListenerAdapter {
                 .setRequired(true)
                 .build();
         Modal modal = Modal.create("blacklistUser"
-                        + "|" + user.getId(), "Blacklist User " + user.getName() + "#" + user.getDiscriminator())
+                        + "|" + user.getId() + "|" + punisher.getId(), "Blacklist User " + user.getName() + "#" + user.getDiscriminator())
                 .addComponents(ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();

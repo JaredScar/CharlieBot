@@ -41,6 +41,8 @@ public class BanManager extends ListenerAdapter {
         String fullUserName = banUser.getUser().getName() + "#" + banUser.getUser().getDiscriminator();
         HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
         List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        if (ruleIds == null) return;
+        rulesSelected.put(evt.getModalId(), null);
         API.getInstance().logPunishment(banUser, evt.getMember(), PunishmentType.BAN, "", ruleIds, reason);
         Logger.log(ActionType.BAN_CREATE, evt.getMember(), banUser, reason);
         evt.getGuild().ban(banUser, 168, TimeUnit.HOURS).reason(reason).queue((v) -> {

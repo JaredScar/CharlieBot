@@ -45,6 +45,8 @@ public class MuteManager extends ListenerAdapter {
         Logger.log(ActionType.MUTE_CREATE, evt.getMember(), muteUser, reason);
         HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
         List<String> ruleIds = rulesSelected.get(evt.getModalId());
+        if (ruleIds == null) return;
+        rulesSelected.put(evt.getModalId(), null);
         API.getInstance().logPunishment(muteUser, evt.getMember(), PunishmentType.MUTE, durationFilter.getAsString(), ruleIds, reason);
         if (ManagerUtils.handleMuteMember(muteUser))
             evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
@@ -89,7 +91,7 @@ public class MuteManager extends ListenerAdapter {
                 .setMinLength(0)
                 .setMaxLength(999).setRequired(true).build();
         Modal modal = Modal.create("muteUser"
-                        + "|" + user.getId(), "Mute User " + user.getName() + "#" + user.getDiscriminator())
+                        + "|" + user.getId() + "|" + punisher.getId(), "Mute User " + user.getName() + "#" + user.getDiscriminator())
                 .addComponents(ActionRow.of(numInput), ActionRow.of(inp))
                 .build();
         evt.replyModal(modal).queue();

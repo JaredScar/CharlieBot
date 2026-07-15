@@ -212,7 +212,7 @@ public class ManagerUtils {
             e.printStackTrace();
         }
         List<PunishmentData> pDatas = punishmentData.get(opt.getAsMember());
-        if (!pDatas.isEmpty()) {
+        if (pDatas != null && !pDatas.isEmpty()) {
             // It has actual PunishmentData
             StringSelectMenu.Builder menuBuilder = StringSelectMenu.create(pName + "Remove" + "|" + opt.getAsMember().getId());
             for (PunishmentData pd : pDatas) {
@@ -256,6 +256,10 @@ public class ManagerUtils {
             e.printStackTrace();
         }
         List<PunishmentData> pDatas = punishmentData.get(beingPunished);
+        if (pDatas == null) {
+            API.getInstance().sendErrorMessage(evt, beingPunished, "Error: No punishments found", "This member does not have any of these types of punishments...");
+            return;
+        }
         Optional<PunishmentData> optionalPd = pDatas.stream().filter((pd) -> pd.getPid() == pid).findFirst();
         if (optionalPd.isPresent()) {
             // It has actual PunishmentData
@@ -264,7 +268,7 @@ public class ManagerUtils {
             TextInput rulesBroken = TextInput.create("rulesBroken", "Rules Broke", TextInputStyle.PARAGRAPH).setValue(pData.getRulesBroken()).build();
             TextInput punishmentLength = TextInput.create("punishmentLength", "Punishment Length", TextInputStyle.SHORT).setValue(pData.getPunishmentLength()).build();
             TextInput punished_by_lastKnownName = TextInput.create("punishedBy", "Punished By", TextInputStyle.SHORT).setValue(pData.getPunished_by_lastKnownName()).build();
-            TextInput reason = TextInput.create("", "", TextInputStyle.PARAGRAPH).build();
+            TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH).setValue(pData.getReason()).build();
             builder.addActionRow(datetime.asDisabled(), rulesBroken.asDisabled(), punishmentLength.asDisabled(), punished_by_lastKnownName.asDisabled(), reason.asDisabled());
             evt.replyModal(builder.build()).queue();
         } else {
@@ -281,8 +285,6 @@ public class ManagerUtils {
     public static void handleModalPunishmentRemoval(ModalInteractionEvent evt, int pid) {
         String modalId = evt.getModalId();
         String[] modalArgs = modalId.split("\\|");
-        String removalType = modalArgs[0].replace("Remove", "");
-        String punishedId = modalArgs[1];
         boolean failed = false;
         try {
             removePunishment(pid);
@@ -290,9 +292,10 @@ public class ManagerUtils {
             Logger.log(e);
             failed = true;
         }
-        if (!failed) {
-            // It was successful, we need to respond that it was good
-            // TODO We also need to remove the actions associated to the punishment...
+        if (failed) {
+            evt.reply("❌ Failed to remove punishment #" + pid + " from history.").setEphemeral(true).queue();
+        } else {
+            evt.reply("✅ Punishment #" + pid + " has been removed from history.").setEphemeral(true).queue();
         }
     }
 
