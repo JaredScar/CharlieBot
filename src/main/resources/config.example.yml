@@ -1,0 +1,401 @@
+Database:
+    DB: charliebot
+    Host: localhost
+    Port: 3306
+    Username: root
+    Password: ''
+Bot:
+    Token: ''
+    Guild: '932655785190764564'
+    Name: CharlieBot
+    Commands:
+        Bark:
+            Enabled: true
+            Description: Get a random picture of Charlie :)
+            Requires_Roles:
+            - '932655785190764573'
+        Warn:
+            Enabled: true
+            Description: Warn a member from the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Warn a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to warn
+                            Required: true
+                remove:
+                    Description: Remove a warn from a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove the warn from
+                            Required: true
+        Kick:
+            Enabled: true
+            Description: Kick a member from the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Kick a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to kick
+                            Required: true
+                remove:
+                    Description: Remove a kick from a member's history
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove the kick from
+                            Required: true
+        Mute:
+            Enabled: true
+            Description: Mute a member from the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Mute a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to mute
+                            Required: true
+                remove:
+                    Description: Remove a mute from a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove the mute from
+                            Required: true
+        Blacklist:
+            Enabled: true
+            Description: Blacklist a member from the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Blacklist a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to blacklist
+                            Required: true
+                remove:
+                    Description: Remove a blacklist from a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove the blacklist from
+                            Required: true
+        Ban:
+            Enabled: true
+            Description: Ban a member from the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Ban a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to ban
+                            Required: true
+                remove:
+                    Description: Remove a ban from a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove the ban from
+                            Required: true
+        Lockdown:
+            Enabled: true
+            Description: Enable or disable the lockdown of the community
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                enable:
+                    Description: Enable lockdown for the current channel
+                disable:
+                    Description: Disable lockdown for the current channel
+        Ticket:
+            Enabled: true
+            Description: Run commands that relate to ticket management
+            Requires_Roles:
+            - '932655785299824670'
+            Sub-Commands:
+                add:
+                    Description: Add a member to the ticket
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to add to the ticket
+                            Required: true
+                remove:
+                    Description: Remove a member from the ticket
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member to remove from the ticket
+                            Required: true
+                members:
+                    Description: List all members in the ticket
+                lock:
+                    Description: Lock the ticket
+                unlock:
+                    Description: Unlock the ticket
+                close:
+                    Description: Close and delete the ticket
+                    Options:
+                        reason:
+                            Type: STRING
+                            Description: Reason for closing the ticket
+                            Required: false
+        Gamble:
+            Enabled: true
+            Description: Run commands that relate to gambling...
+            Requires_Roles:
+            - '932655785190764573'
+            Options:
+                amount:
+                    Type: INTEGER
+                    Description: Amount of points to gamble
+                    Required: true
+        Points:
+            Enabled: true
+            Description: Manage your Charlie Coins and use the points system
+            Requires_Roles:
+            - '932655785190764573'
+            Sub-Commands:
+                view:
+                    Description: View your current points
+                give:
+                    Description: Give points to another user
+                    Options:
+                        amount:
+                            Type: INTEGER
+                            Description: Amount of points to give
+                            Required: true
+                        member:
+                            Type: USER
+                            Description: User to give points to
+                            Required: true
+                leaderboard:
+                    Description: View the points leaderboard
+                store:
+                    Description: View the points store
+                redeem:
+                    Description: Redeem items from the store
+                    Options:
+                        item:
+                            Type: STRING
+                            Description: Item to redeem (role, nickname, badge, vip)
+                            Required: true
+                        amount:
+                            Type: INTEGER
+                            Description: Amount to redeem
+                            Required: false
+        Rules:
+            Enabled: true
+            Description: Manage server rules
+            Requires_Roles:
+            - '932655785404665949'
+            Sub-Commands:
+                view:
+                    Description: View all server rules
+                add:
+                    Description: Add a new rule
+                    Options:
+                        section:
+                            Type: STRING
+                            Description: Rule section (e.g., General, Moderation)
+                            Required: true
+                        rule:
+                            Type: STRING
+                            Description: The rule text
+                            Required: true
+                edit:
+                    Description: Edit an existing rule
+                    Options:
+                        rule_id:
+                            Type: STRING
+                            Description: ID of the rule to edit
+                            Required: true
+                        new_rule:
+                            Type: STRING
+                            Description: New rule text
+                            Required: true
+                remove:
+                    Description: Remove a rule
+                    Options:
+                        rule_id:
+                            Type: STRING
+                            Description: ID of the rule to remove
+                            Required: true
+        History:
+            Enabled: true
+            Description: View and manage punishment history
+            Requires_Roles:
+            - '932655785404665949'
+            Sub-Commands:
+                view:
+                    Description: View a user's punishment history
+                    Options:
+                        member:
+                            Type: USER
+                            Description: User to view history for
+                            Required: true
+                clear:
+                    Description: Clear a user's punishment history
+                    Options:
+                        member:
+                            Type: USER
+                            Description: User to clear history for
+                            Required: true
+        Help:
+            Enabled: true
+            Description: Get help with CharlieBot commands
+            Requires_Roles: []
+        Sticky:
+            Enabled: true
+            Description: s
+            Requires_Roles:
+            - '932655785404665949'
+    Messaging:
+        Support:
+            Enabled: false
+            Triggers:
+            - support
+            - help
+            - assistance
+            Message: 'As of 2022-12-11, support will no longer be available within
+                this Discord unless you have one of the following roles: `[Subscription
+                Monthly] Supporter`, `[Subscription Quarterly] Supporter`, `[Subscription
+                Yearly] Supporter` -- Support for paid products is still provided
+                via tickets.'
+            Bypass_Level: 5
+            Bypass_Roles: []
+        Points:
+            Enabled: true
+            Name: Charlie Coins
+            PerMessage: 3
+            DebounceTime: 30
+        Rank:
+            ExpPerMessage: 1
+            DebounceTime: 60
+    Gamble:
+        Slot_PNGs:
+        - 7_Slot
+        - Magneton_Slot
+        - Pikachu_Slot
+        - Pokeballs_Slot
+        - Psyduck_Slot
+        - Sheller_Slot
+        - TeamRocket_Slot
+        Slots_GIF: pokemon_slots
+    Logger:
+        Enabled: false
+        Channel: '932655790270074941'
+    Punishment_Announce_Channel: '932655786801364995'
+    Tickets:
+        Enabled: true
+        MessageID: '1457569283415736476'
+        Ticket_IMG: ''
+        Title: Create a ticket
+        Body: Create a ticket by selecting the ticket category below...
+        Ticket_Options:
+            Product-Support:
+                Enabled: true
+                Icon: 🛒
+                Label: 🛒 Paid Product Support
+                Open_Ticket_Confirm_Title: Are you sure?
+                Open_Ticket_Confirm_Desc: Are you sure this ticket is valid? These
+                    tickets should only be used for product support. Opening a ticket
+                    in the wrong category can lead to punishment. Make sure you read
+                    the rules before following through with making a new ticket...
+                Start_Message: |-
+                    You purchased a product and need support? Perfect, please fill out the following format below to get further assistance:
+                    `Script:` `Error Message(s):` `Configuration:` `Does the script work before you make changes?:`
+                Roles_Required:
+                - '932655785190764573'
+                Manage_Roles:
+                - '932655785299824670'
+                Category: '932655789078876273'
+            Report-Member:
+                Enabled: true
+                Icon: 🔰
+                Label: 🔰 Report Member
+                Open_Ticket_Confirm_Title: Are you sure?
+                Open_Ticket_Confirm_Desc: Are you sure this ticket is valid? These
+                    tickets should only be used for support related to reporting a
+                    community member. Opening a ticket in the wrong category can lead
+                    to punishment. Make sure you read the rules before following through
+                    with making a new ticket...
+                Start_Message: You want to report a member of the community? Please
+                    fill out the following format below to get further assistance
+                    from Badger:\n
+                Roles_Required:
+                - '932655785190764573'
+                Manage_Roles:
+                - '394446211341615104'
+                Category: '932655789078876273'
+        Ticket_Close_Title: Welcome to your ticket, {NAME}
+        Ticket_Close_Body: Please follow the instructions below for further assistance.
+            Thank you.
+        Unlock_Ticket_Button: 🔓 Unlock
+        Lock_Ticket_Button: 🔒 Lock
+        Close_Ticket_Button: 📤 Close & Save
+        Channel: '932655786801364994'
+        Log_Channel: '932655789078876274'
+    Buttons:
+        Confirm_Button: 🟢 Confirm
+        Deny_Button: 🔴 Deny
+Rules:
+    Sections:
+        General Rules:
+            '1': You may not bully anyone verbally or physically (ddos, dox) within
+                the Jared's Developer Community Discord.
+            '2': Do not discuss drugs or alcohol within any of the Jared's Developer
+                Community Discord channels.
+            '3': Do not post any nudity or NSFW within any of the Jared's Developer
+                Community Discord channels.
+            '4': Read 📒documentation for support.
+            '5': Follow channel topics accordingly. If you just want a casual place
+                to chat about random things in the world, use unknown. 🤖bot-commands
+                is for commands that require a bot response. So on and so forth...
+            '6': Do not ghost ping users.
+            '7': No DMing users to be your developer.
+            '8': No DMing users for help.
+            '9': Do not be ignorant. Most cases, a script not working is fault of
+                the individual installing it themselves.
+            '10': Follow formats if a channel requires one.
+            '11': Be professional.
+            '12': All support requests for free products must follow the format stickied
+                in support. Support for paid products is still provided via tickets.
+                Most things can be solved via the 📒documentation though.
+            '13': Do not mass ping at all. Doing so may lead to a straight up ban.
+            '14': You may only advertise in the 📣self-promotion channel. Advertisements
+                anywhere else in the Discord or a user's DM may get you punished accordingly.
+            '15': Tickets are only to be used for applying for roles, staff questions,
+                purchasing products, inquiring about becoming an affiliate. Tickets
+                about support are ONLY permitted if it is for a paid product.
+            '16': DMing a user with the DON'T DM role will be met with a warn if reported
+                by said user. You are not to DM anybody with this role unless they
+                instructed you are able to. Therefore, you may inquire about permission
+                to DM a user, but they must give you permission in able for you to
+                DM them.
+            '17': You are not allowed to use anything such as BetterDiscord to claim
+                nitro giveaways in chat channels or spam. Basically, do not use BetterDiscord
+                and/or third party Discord applications to give yourself an advantage
+                over other members within giveaways. This will lead to a ban.
+        Mandated Discord Rules:
+            '1': You are not allowed to advertise other Discords within DMs. (This
+                also violates Discord's TOS)
+            '2': You must be 13+ in order to follow Discord's TOS. Joking about this
+                may still lead to a ban from the Discord.

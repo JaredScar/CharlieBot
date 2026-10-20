@@ -38,5 +38,17 @@ build/
 .DS_Store
 
 ### Custom ###
+# Live bot config (token, database password). Keep these local only.
 src/main/resources/config.yml
+config/config.yml
+**/config/config.yml
+
+# Built bot, runtime logs, ticket transcripts, and the server deploy folder
 out/
+deploy/
+logs/
+ticket_logs/
+dependency-reduced-pom.xml
+
+# Local IDE state
+.idea/workspace.xml

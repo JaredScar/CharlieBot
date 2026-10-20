@@ -25,6 +25,9 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.2</version>
         <configuration>
+          <excludes>
+            <exclude>config.yml</exclude>
+          </excludes>
           <archive>
             <manifest>
               <mainClass>com.jaredscarito.main.Main</mainClass>
@@ -42,6 +45,14 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>config.yml</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <transformers>
                 <transformer>
                   <mainClass>com.jaredscarito.main.Main</mainClass>
