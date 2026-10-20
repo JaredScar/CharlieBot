@@ -6,6 +6,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 
 import net.dv8tion.jda.api.entities.Member;
@@ -35,6 +36,11 @@ public class GambleCommand {
         int amt = opt.getAsInt();
         if (amt <= 0) {
             evt.reply("❌ Error: Amount must be greater than 0.").setEphemeral(true).queue();
+            return;
+        }
+        if (amt > Integer.MAX_VALUE / 2) {
+            // a win pays amt * 2, which would overflow
+            evt.reply("❌ Error: That bet is too large.").setEphemeral(true).queue();
             return;
         }
         
@@ -143,6 +149,13 @@ public class GambleCommand {
                 return;
             }
             
+            // Take the bet up front and atomically. Previously it was only deducted after the 6 second animation,
+            // so several simultaneous gambles on the same balance all passed the balance check above.
+            if (!API.getInstance().tryRemovePoints(mem, amt)) {
+                evt.reply("❌ Error: You don't have enough points for that bet.").setEphemeral(true).queue();
+                return;
+            }
+            
             // Acknowledge the interaction immediately
             evt.deferReply().queue();
             
@@ -168,18 +181,31 @@ public class GambleCommand {
                 msg.editMessage(emoji1 + emoji2 + slotGif).queueAfter(4, TimeUnit.SECONDS);
                 msg.editMessage(emoji1 + emoji2 + emoji3).queueAfter(6, TimeUnit.SECONDS, (editedMsg) -> {
                     if (emoji1.equals(emoji2) && emoji2.equals(emoji3)) {
-                        API.getInstance().addPoints(mem, amt);
+                        // the bet was already taken, so a win pays back the bet plus the winnings
+                        API.getInstance().addPoints(mem, amt * 2);
                         editedMsg.reply("**Congrats** " + mem.getAsMention() + " -- You won `" + amt + "` " + coinName + "!").queueAfter(1, TimeUnit.SECONDS);
                     } else {
-                        API.getInstance().removePoints(mem, amt);
                         editedMsg.reply("**Sorry** " + mem.getAsMention() + " -- You lost `" + amt + "` " + coinName +
                                 ".... Better luck next time!").queueAfter(1, TimeUnit.SECONDS);
                     }
+                }, (error) -> {
+                    // The animation broke (message deleted etc.): the outcome is unknown, so return the bet
+                    Logger.log(error);
+                    API.getInstance().addPoints(mem, amt);
                 });
+            }, (error) -> {
+                // The spin message could not be sent at all: return the bet
+                Logger.log(error);
+                API.getInstance().addPoints(mem, amt);
             });
         } catch (Exception e) {
-            evt.reply("❌ An error occurred while processing the gamble: " + e.getMessage()).setEphemeral(true).queue();
+            Logger.log(e);
             e.printStackTrace();
+            if (evt.isAcknowledged()) {
+                evt.getHook().sendMessage("❌ An error occurred while processing the gamble: " + e.getMessage()).setEphemeral(true).queue();
+            } else {
+                evt.reply("❌ An error occurred while processing the gamble: " + e.getMessage()).setEphemeral(true).queue();
+            }
         }
     }
 

@@ -39,14 +39,20 @@ public class BanManager extends ListenerAdapter {
         Member banUser = evt.getGuild().getMemberById(userId);
         if (banUser == null) return;
         String fullUserName = banUser.getUser().getName() + "#" + banUser.getUser().getDiscriminator();
-        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> ruleIds = rulesSelected.get(evt.getModalId());
-        if (ruleIds == null) return;
-        rulesSelected.put(evt.getModalId(), null);
-        API.getInstance().logPunishment(banUser, evt.getMember(), PunishmentType.BAN, "", ruleIds, reason);
-        Logger.log(ActionType.BAN_CREATE, evt.getMember(), banUser, reason);
+        List<String> ruleIds = ManagerUtils.getRulesSelected().remove(evt.getModalId());
+        if (ruleIds == null) {
+            evt.reply("❌ This prompt has expired. Please run the command again.").setEphemeral(true).queue();
+            return;
+        }
+        Member moderator = evt.getMember();
+        // Only record the punishment once Discord has actually accepted the ban
         evt.getGuild().ban(banUser, 168, TimeUnit.HOURS).reason(reason).queue((v) -> {
-            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been banned...").build()).setEphemeral(true).queue();
+            API.getInstance().logPunishment(banUser, moderator, PunishmentType.BAN, "", ruleIds, reason);
+            Logger.log(ActionType.BAN_CREATE, moderator, banUser, reason);
+            evt.replyEmbeds(API.getInstance().sendSuccessMessage(moderator, "Success", "User `" + fullUserName + "` has been banned...").build()).setEphemeral(true).queue();
+        }, (error) -> {
+            Logger.log(error);
+            evt.reply("❌ Failed to ban `" + fullUserName + "`: " + error.getMessage()).setEphemeral(true).queue();
         });
     }
 

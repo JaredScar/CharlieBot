@@ -16,6 +16,7 @@ import com.jaredscarito.listeners.commands.RuleCommand;
 import com.jaredscarito.listeners.commands.StickyCommand;
 import com.jaredscarito.listeners.commands.TicketCommand;
 import com.jaredscarito.listeners.commands.WarnCommand;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 
 import net.dv8tion.jda.api.entities.Member;
@@ -63,8 +64,15 @@ public class GeneralCommandEventListener extends ListenerAdapter {
                 default -> evt.reply("❌ Unknown command: " + commandName).setEphemeral(true).queue();
             }
         } catch (Exception e) {
-            evt.reply("❌ An error occurred while processing the command.").setEphemeral(true).queue();
+            Logger.log(e);
             e.printStackTrace();
+            // The command may already have acknowledged the interaction (deferReply / reply / modal).
+            // Replying again would throw, so answer through the hook in that case.
+            if (evt.isAcknowledged()) {
+                evt.getHook().sendMessage("❌ An error occurred while processing the command.").setEphemeral(true).queue(null, err -> {});
+            } else {
+                evt.reply("❌ An error occurred while processing the command.").setEphemeral(true).queue();
+            }
         }
     }
     public boolean isEnabled(String command) {

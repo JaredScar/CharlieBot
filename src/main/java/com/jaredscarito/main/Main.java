@@ -14,6 +14,7 @@ import com.jaredscarito.managers.BlacklistManager;
 import com.jaredscarito.managers.KickManager;
 import com.jaredscarito.managers.LockdownManager;
 import com.jaredscarito.managers.MuteManager;
+import com.jaredscarito.managers.PunishmentManager;
 import com.jaredscarito.managers.StickyManager;
 import com.jaredscarito.managers.TicketManager;
 import com.jaredscarito.managers.WarnManager;
@@ -130,9 +131,9 @@ public class Main {
         String password = getConfig().getString("Database.Password");
         String db = getConfig().getString("Database.DB");
         try {
-            if (sqlHelperInstance == null) {
-                sqlHelperInstance = SQLHelper.getInstance(host, port, db, username, password);
-            }
+            // getInstance() re-validates the connection on every call and reconnects when MySQL has
+            // dropped it (wait_timeout), so a long-running bot doesn't stay broken after idle periods.
+            sqlHelperInstance = SQLHelper.getInstance(host, port, db, username, password);
             return sqlHelperInstance;
         } catch (SQLException ex) {
             Logger.log(ex);
@@ -235,8 +236,16 @@ public class Main {
                 banManager,
                 blacklistManager,
                 stickyManager,
-                new WarnManager()
+                new WarnManager(),
+                new PunishmentManager()
         );
-        StickyManager.initializeStickyMessages();
+        try {
+            StickyManager.initializeStickyMessages();
+        } catch (Exception ex) {
+            // e.g. the database is unreachable: log it, but don't take the whole bot down at startup
+            Logger.log(ex);
+        }
+        // lifts timed mutes when they run out (also catches up on mutes that expired while the bot was offline)
+        com.jaredscarito.managers.PunishmentEffects.startMuteScheduler();
     }
 }

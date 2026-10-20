@@ -21,6 +21,28 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 public class Logger {
+    /**
+     * The channel action logs are posted to, or null when channel logging is switched off
+     * (Bot.Logger.Enabled: false) or the guild/channel is not configured. The file logs
+     * (logs/actions.txt and logs/error.txt) are written regardless of this setting.
+     */
+    private static TextChannel getLogChannel() {
+        try {
+            // a missing key keeps the old behaviour (logging on)
+            if (!Main.getInstance().getConfig().getBoolean("Bot.Logger.Enabled", true)) return null;
+            String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
+            String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
+            if (logChannel == null || logChannel.trim().isEmpty() || guildId == null || guildId.trim().isEmpty()) return null;
+            Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
+            if (guild == null) return null;
+            return guild.getTextChannelById(logChannel);
+        } catch (Exception ex) {
+            // a bad id in the config must never break the action that is being logged
+            log(ex);
+            return null;
+        }
+    }
+
     private static String getCurrentDatetimeString() {
         Date date = new Date();
 
@@ -61,11 +83,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -106,11 +124,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -150,11 +164,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -196,11 +206,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -244,11 +250,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -291,11 +293,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());
@@ -336,11 +334,7 @@ public class Logger {
                 e.printStackTrace();
             }
         }
-        String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
-        String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
-        Guild guild = Main.getInstance().getJDA().getGuildById(guildId);
-        if (guild == null) return;
-        TextChannel logChan = guild.getTextChannelById(logChannel);
+        TextChannel logChan = getLogChannel();
         if (logChan == null) return;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(performedBy.getEffectiveName(), performedBy.getAvatarUrl());

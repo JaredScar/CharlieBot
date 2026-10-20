@@ -12,6 +12,7 @@ import com.jaredscarito.models.ActionType;
 
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
@@ -22,6 +23,10 @@ public class TicketCommand {
             user = Objects.requireNonNull(evt.getOption("member")).getAsUser();
         }
         String subCommand = evt.getSubcommandName();
+        if (evt.getChannelType() != ChannelType.TEXT) {
+            evt.reply("❌ Error: This is not a valid ticket. These commands can only be used inside of a valid ticket channel.").setEphemeral(true).queue();
+            return;
+        }
         TextChannel chan = evt.getChannel().asTextChannel();
         Member mem = evt.getMember();
         TicketManager tm = Main.getInstance().getTicketManager();
@@ -137,16 +142,21 @@ public class TicketCommand {
                     if (evt.getOption("reason") != null) {
                         reason = Objects.requireNonNull(evt.getOption("reason")).getAsString();
                     }
-                    if (tm.canManageTicket(mem, ticket_type)) {
-                        if (tm.deleteTicketFromDB(chan)) {
-                            tm.saveTicket(chan, evt.getMember(), reason);
-                            // it was saved, delete it
-                            evt.getHook().sendMessage("This ticket will be deleted in `30` seconds...").queue();
-                            chan.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
-                            chan.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
-                            chan.delete().queueAfter(30, TimeUnit.SECONDS);
-                            Logger.log(ActionType.CLOSE_TICKET, evt.getMember(), reason);
-                        }
+                    // The reply was deferred above, so every path below MUST answer or Discord shows "thinking..." forever
+                    if (!tm.canCloseTicket(mem, chan)) {
+                        evt.getHook().sendMessage("❌ Error: You lack permissions to close this ticket...").setEphemeral(true).queue();
+                        break;
+                    }
+                    if (tm.deleteTicketFromDB(chan)) {
+                        tm.saveTicket(chan, evt.getMember(), reason);
+                        // it was saved, delete it
+                        evt.getHook().sendMessage("This ticket will be deleted in `30` seconds...").queue();
+                        chan.sendMessage("Deleting in `10` seconds...").queueAfter(20, TimeUnit.SECONDS);
+                        chan.sendMessage("Deleting in `5` seconds...").queueAfter(25, TimeUnit.SECONDS);
+                        chan.delete().queueAfter(30, TimeUnit.SECONDS);
+                        Logger.log(ActionType.CLOSE_TICKET, evt.getMember(), chan.getName(), reason);
+                    } else {
+                        evt.getHook().sendMessage("❌ The ticket could not be closed due to an error...").setEphemeral(true).queue();
                     }
                     break;
             }

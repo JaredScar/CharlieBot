@@ -41,10 +41,11 @@ public class WarnManager extends ListenerAdapter {
         if (evt.getGuild() == null) return;
         Member warnUser = evt.getGuild().getMemberById(userId);
         if (warnUser == null) return;
-        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> ruleIds = rulesSelected.get(evt.getModalId());
-        if (ruleIds == null) return;
-        rulesSelected.put(evt.getModalId(), null);
+        List<String> ruleIds = ManagerUtils.getRulesSelected().remove(evt.getModalId());
+        if (ruleIds == null) {
+            evt.reply("❌ This prompt has expired. Please run the command again.").setEphemeral(true).queue();
+            return;
+        }
         String fullUserName = warnUser.getUser().getName() + "#" + warnUser.getUser().getDiscriminator();
         API.getInstance().notifyPunishment(warnUser, evt.getMember(), PunishmentType.WARN, "", ruleIds, reason);
         API.getInstance().logPunishment(warnUser, evt.getMember(), PunishmentType.WARN, "", ruleIds, reason);

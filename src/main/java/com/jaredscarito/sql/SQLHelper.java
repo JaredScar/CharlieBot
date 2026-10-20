@@ -2,17 +2,14 @@ package com.jaredscarito.sql;
 
 import java.sql.*;
 
+import com.jaredscarito.logger.Logger;
+
 public class SQLHelper {
     private static SQLHelper instance = null;
     private Connection conn;
     private boolean isConnected = false;
     
     private SQLHelper(String ip, int port, String dbName, String username, String password) throws SQLException {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         conn = DriverManager.getConnection(
                 "jdbc:mysql://" + ip + ":" + port + "/" + dbName,username,password);
         this.isConnected = true;
@@ -76,21 +73,12 @@ public class SQLHelper {
         }
     }
 
-    public ResultSet runQuery(String query) {
-        try (Statement stmt = conn.createStatement()) {
-            return stmt.executeQuery(query);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public boolean runStatement(String state) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(state);
             return true;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.log(e);
             return false;
         }
     }

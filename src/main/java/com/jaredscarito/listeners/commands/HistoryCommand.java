@@ -1,6 +1,7 @@
 package com.jaredscarito.listeners.commands;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 import com.jaredscarito.models.PunishmentData;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,6 +12,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import java.awt.*;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 public class HistoryCommand {
@@ -50,28 +52,40 @@ public class HistoryCommand {
         eb.setAuthor(member.getEffectiveName(), member.getAvatarUrl());
         eb.setThumbnail(target.getAvatarUrl());
         
-        if (punishments.isEmpty()) {
+        // Filter cleared entries FIRST, otherwise the 10 entry limit could be used up by deleted ones
+        List<PunishmentData> visible = new ArrayList<>();
+        for (PunishmentData p : punishments) {
+            if (!p.isDeleted()) visible.add(p);
+        }
+        
+        if (visible.isEmpty()) {
             eb.setDescription("This user has no punishment history.");
         } else {
             StringBuilder historyText = new StringBuilder();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            int shown = 0;
             
-            for (int i = 0; i < Math.min(punishments.size(), 10); i++) {
-                PunishmentData punishment = punishments.get(i);
-                if (punishment.isDeleted()) continue;
+            for (PunishmentData punishment : visible) {
+                if (shown >= 10) break;
                 
                 String dateStr = punishment.getDatetime() != null ? 
                     dateFormat.format(punishment.getDatetime()) : "Unknown Date";
                 
-                historyText.append("**").append(punishment.getPunishmentType().name()).append("**")
+                StringBuilder entry = new StringBuilder();
+                entry.append("**").append(punishment.getPunishmentType() == null ? "UNKNOWN" : punishment.getPunishmentType().name()).append("**")
                     .append(" - ").append(dateStr).append("\n");
-                historyText.append("Rules: ").append(punishment.getRuleIdsBroken()).append("\n");
-                historyText.append("Reason: ").append(punishment.getReason()).append("\n");
-                historyText.append("By: ").append(punishment.getPunishedByLastKnownName()).append("\n\n");
+                entry.append("Rules: ").append(punishment.getRuleIdsBroken()).append("\n");
+                // embed descriptions are limited to 4096 characters, so cap each reason
+                entry.append("Reason: ").append(truncate(punishment.getReason(), 200)).append("\n");
+                entry.append("By: ").append(punishment.getPunishedByLastKnownName()).append("\n\n");
+                
+                if (historyText.length() + entry.length() > 3800) break;
+                historyText.append(entry);
+                shown++;
             }
             
-            if (punishments.size() > 10) {
-                historyText.append("*... and ").append(punishments.size() - 10).append(" more entries*");
+            if (visible.size() > shown) {
+                historyText.append("*... and ").append(visible.size() - shown).append(" more entries*");
             }
             
             eb.setDescription(historyText.toString());
@@ -94,12 +108,15 @@ public class HistoryCommand {
         }
         
         // Mark all punishments as deleted instead of actually deleting them
-        boolean success = markPunishmentsAsDeleted(target.getIdLong());
+        int cleared = markPunishmentsAsDeleted(target.getIdLong());
         
-        if (success) {
+        if (cleared >= 0) {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setTitle("✅ History Cleared");
-            eb.setDescription("Successfully cleared punishment history for " + target.getAsMention());
+            // 0 affected rows is not a failure: the user simply had nothing to clear
+            eb.setDescription(cleared == 0
+                    ? target.getAsMention() + " has no punishment history to clear."
+                    : "Successfully cleared " + cleared + " punishment history entr" + (cleared == 1 ? "y" : "ies") + " for " + target.getAsMention());
             eb.setColor(Color.GREEN);
             eb.setAuthor(member.getEffectiveName(), member.getAvatarUrl());
             
@@ -109,16 +126,22 @@ public class HistoryCommand {
         }
     }
     
-    private static boolean markPunishmentsAsDeleted(long discordId) {
+    /** @return number of entries cleared, or -1 on a database error */
+    private static int markPunishmentsAsDeleted(long discordId) {
         var conn = Main.getInstance().getSqlHelper().getConn();
-        if (conn == null) return false;
-        try (var stmt = conn.prepareStatement("UPDATE `punishments` SET `deleted` = 1 WHERE `discord_id` = ?")) {
+        if (conn == null) return -1;
+        try (var stmt = conn.prepareStatement("UPDATE `punishments` SET `deleted` = 1 WHERE `discord_id` = ? AND `deleted` = 0")) {
             stmt.setLong(1, discordId);
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
+            return stmt.executeUpdate();
         } catch (SQLException e) {
+            Logger.log(e);
             e.printStackTrace();
-            return false;
+            return -1;
         }
+    }
+
+    private static String truncate(String text, int max) {
+        if (text == null) return "None";
+        return text.length() <= max ? text : text.substring(0, max - 3) + "...";
     }
 }

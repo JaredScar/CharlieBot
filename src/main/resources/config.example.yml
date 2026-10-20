@@ -56,6 +56,8 @@ Bot:
                             Required: true
         Mute:
             Enabled: true
+            # ID of the role that is given to muted members (required for /mute add)
+            Mute_Role: ''
             Description: Mute a member from the community
             Requires_Roles:
             - '932655785299824670'
@@ -76,6 +78,8 @@ Bot:
                             Required: true
         Blacklist:
             Enabled: true
+            # ID of the role that is given to blacklisted members (required for /blacklist add)
+            Blacklist_Role: ''
             Description: Blacklist a member from the community
             Requires_Roles:
             - '932655785299824670'
@@ -264,9 +268,16 @@ Bot:
             Requires_Roles: []
         Sticky:
             Enabled: true
-            Description: s
+            Description: Manage the sticky message of a channel
             Requires_Roles:
             - '932655785404665949'
+            Sub-Commands:
+                add:
+                    Description: Add a sticky message to this channel
+                edit:
+                    Description: Edit this channel's sticky message
+                remove:
+                    Description: Remove this channel's sticky message
     Messaging:
         Support:
             Enabled: false
@@ -286,9 +297,25 @@ Bot:
             Name: Charlie Coins
             PerMessage: 3
             DebounceTime: 30
+            # Rewards for /points store and /points redeem. Every item gives the member a role.
+            # An item is only offered when it has a Cost above 0 and a Role that exists in the server.
+            Store:
+                Items:
+                    vip:
+                        Name: VIP
+                        Description: Get the VIP role!
+                        Cost: 5000
+                        Role: ''
         Rank:
+            Enabled: true
             ExpPerMessage: 1
             DebounceTime: 60
+        Self_Promotion:
+            Enabled: false
+            Channel: ''
+            Bypass_Level: 5
+            # Hours a member has to wait between posts in the self promotion channel
+            DelayTime: 24
     Gamble:
         Slot_PNGs:
         - 7_Slot
@@ -300,7 +327,8 @@ Bot:
         - TeamRocket_Slot
         Slots_GIF: pokemon_slots
     Logger:
-        Enabled: false
+        # true = also post every moderation/ticket action as an embed in Channel (logs/actions.txt is always written)
+        Enabled: true
         Channel: '932655790270074941'
     Punishment_Announce_Channel: '932655786801364995'
     Tickets:

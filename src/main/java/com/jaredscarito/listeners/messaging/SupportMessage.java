@@ -17,7 +17,7 @@ public class SupportMessage {
         List<String> wordList = Main.getInstance().getConfig().getStringList("Bot.Messaging.Support.Triggers");
         List<String> bypassCategories = Main.getInstance().getConfig().getStringList("Bot.Messaging.Support.Bypass_Categories");
         for (String categoryId : bypassCategories) {
-            if (chan.getParentCategoryId().equals(categoryId))
+            if (categoryId.equals(chan.getParentCategoryId())) // a channel outside any category has no parent id
                 return; // Do not continue, it's a bypass category
         }
         boolean sendMessage = false;

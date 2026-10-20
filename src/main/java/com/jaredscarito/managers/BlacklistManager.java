@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -38,24 +39,41 @@ public class BlacklistManager extends ListenerAdapter {
         Member blacklistUser = evt.getGuild().getMemberById(userId);
         if (blacklistUser == null) return;
         String fullUserName = blacklistUser.getUser().getName() + "#" + blacklistUser.getUser().getDiscriminator();
-        // Actually blacklist them
-        blacklistMember(blacklistUser);
-        Logger.log(ActionType.BLACKLIST_CREATE, evt.getMember(), blacklistUser, reason);
-        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> ruleIds = rulesSelected.get(evt.getModalId());
-        if (ruleIds == null) return;
-        rulesSelected.put(evt.getModalId(), null);
-        API.getInstance().logPunishment(blacklistUser, evt.getMember(), PunishmentType.BLACKLIST, "", ruleIds, reason);
-        evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been blacklisted...").build()).setEphemeral(true).queue();
-    }
-
-    private void blacklistMember(Member mem) {
-        for (Role r : mem.getRoles()) {
-            mem.getGuild().removeRoleFromMember(mem, r).queue();
+        // Validate the role BEFORE touching the member: previously every role was stripped first and
+        // the blacklist role lookup afterwards, so a missing/invalid config left the member with nothing.
+        Role blacklistRole = ManagerUtils.getBlacklistRole(evt.getGuild());
+        if (blacklistRole == null) {
+            evt.reply("❌ The blacklist role is not configured (or no longer exists). Set `Bot.Commands.Blacklist.Blacklist_Role` in config.yml to a valid role ID.")
+                    .setEphemeral(true).queue();
+            return;
         }
-        Role role = mem.getGuild().getRoleById(API.getInstance().getConfigValue("Bot.Commands.Blacklist.Blacklist_Role"));
-        if (role == null) return;
-        mem.getGuild().addRoleToMember(mem, role).queue();
+        List<String> ruleIds = ManagerUtils.getRulesSelected().remove(evt.getModalId());
+        if (ruleIds == null) {
+            evt.reply("❌ This prompt has expired. Please run the command again.").setEphemeral(true).queue();
+            return;
+        }
+        Member moderator = evt.getMember();
+        // Swap every removable role for the blacklist role in a single request
+        List<Role> rolesToRemove = new ArrayList<>();
+        Member self = evt.getGuild().getSelfMember();
+        for (Role r : blacklistUser.getRoles()) {
+            if (r.isManaged() || r.equals(blacklistRole) || !self.canInteract(r)) continue;
+            rolesToRemove.add(r);
+        }
+        // Keep the removed roles so /blacklist remove can give them back. A member who is ALREADY blacklisted
+        // only has the blacklist role left, so saving again would overwrite the original roles with nothing.
+        boolean alreadyBlacklisted = blacklistUser.getRoles().contains(blacklistRole);
+        evt.getGuild().modifyMemberRoles(blacklistUser, List.of(blacklistRole), rolesToRemove).queue((v) -> {
+            if (!alreadyBlacklisted) {
+                PunishmentEffects.saveBlacklistedRoles(blacklistUser.getIdLong(), rolesToRemove);
+            }
+            Logger.log(ActionType.BLACKLIST_CREATE, moderator, blacklistUser, reason);
+            API.getInstance().logPunishment(blacklistUser, moderator, PunishmentType.BLACKLIST, "", ruleIds, reason);
+            evt.replyEmbeds(API.getInstance().sendSuccessMessage(moderator, "Success", "User `" + fullUserName + "` has been blacklisted...").build()).setEphemeral(true).queue();
+        }, (error) -> {
+            Logger.log(error);
+            evt.reply("❌ Failed to blacklist `" + fullUserName + "`: " + error.getMessage()).setEphemeral(true).queue();
+        });
     }
 
     @Override

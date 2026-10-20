@@ -36,14 +36,19 @@ public class KickManager extends ListenerAdapter {
         if (evt.getGuild() == null) return;
         Member kickUser = evt.getGuild().getMemberById(userId);
         if (kickUser == null) return;
-        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> ruleIds = rulesSelected.get(evt.getModalId());
-        if (ruleIds == null) return;
+        List<String> ruleIds = ManagerUtils.getRulesSelected().remove(evt.getModalId());
+        if (ruleIds == null) {
+            evt.reply("❌ This prompt has expired. Please run the command again.").setEphemeral(true).queue();
+            return;
+        }
         String fullUserName = kickUser.getUser().getName() + "#" + kickUser.getUser().getDiscriminator();
         evt.getGuild().kick(kickUser).reason(reason).queue((v) -> {
             API.getInstance().logPunishment(kickUser, evt.getMember(), PunishmentType.KICK, "", ruleIds, reason);
             Logger.log(ActionType.KICK_CREATE, evt.getMember(), kickUser, ruleIds, reason);
-            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been kicked...").build()).queue();
+            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been kicked...").build()).setEphemeral(true).queue();
+        }, (error) -> {
+            Logger.log(error);
+            evt.reply("❌ Failed to kick `" + fullUserName + "`: " + error.getMessage()).setEphemeral(true).queue();
         });
     }
 

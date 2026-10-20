@@ -43,18 +43,30 @@ public class LockdownManager extends ListenerAdapter {
         }
     }
     private void lockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
+        if (ManagerUtils.isChannelLockedDown(chan)) {
+            evt.reply("❌ This channel is already locked down. Use `/lockdown disable` to lift it.").setEphemeral(true).queue();
+            return;
+        }
         List<PermissionOverride> permissionOverrides = chan.getPermissionOverrides();
         boolean completed = ManagerUtils.handleRolePermissionsOnLockdown(chan, permissionOverrides);
-        Logger.log(ActionType.LOCKDOWN_START, mem, chan, reason);
         if (completed) {
+            Logger.log(ActionType.LOCKDOWN_START, mem, chan, reason);
             evt.reply("**\uD83D\uDD12 LOCKED CHANNEL** -- This channel has been locked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
+        } else {
+            evt.reply("❌ Could not lock down this channel: it has no role permission overrides to restrict, or something went wrong (see `logs/error.txt`).").setEphemeral(true).queue();
         }
     }
     private void unlockChannel(ModalInteractionEvent evt, TextChannel chan, Member mem, String reason) {
+        if (!ManagerUtils.isChannelLockedDown(chan)) {
+            evt.reply("❌ This channel is not locked down.").setEphemeral(true).queue();
+            return;
+        }
         boolean completed = ManagerUtils.handleRolePermissionsAfterLockdown(chan);
-        Logger.log(ActionType.LOCKDOWN_END, mem, chan, reason);
         if (completed) {
+            Logger.log(ActionType.LOCKDOWN_END, mem, chan, reason);
             evt.reply("**\uD83D\uDD13 UNLOCKED CHANNEL** -- This channel has been unlocked by " + mem.getAsMention() + " for reason: `" + reason + "`...").queue();
+        } else {
+            evt.reply("❌ Failed to lift the lockdown. Check `logs/error.txt` for details.").setEphemeral(true).queue();
         }
     }
 }

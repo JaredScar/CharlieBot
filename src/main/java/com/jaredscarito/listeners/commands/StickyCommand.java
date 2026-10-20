@@ -6,6 +6,8 @@ import com.jaredscarito.managers.StickyManager;
 import com.jaredscarito.models.ActionType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
@@ -20,32 +22,52 @@ public class StickyCommand {
         if (mem == null) return;
         if (mem.getUser().isBot()) return;
         String subCommand = evt.getSubcommandName();
-        if (subCommand == null) return;
+        if (subCommand == null) {
+            evt.reply("❌ Error: Please specify a subcommand (add, edit or remove). " +
+                    "If you don't see any, add the `Sub-Commands` for `Sticky` to config.yml (see config.example.yml).").setEphemeral(true).queue();
+            return;
+        }
+        if (evt.getChannelType() != ChannelType.TEXT) {
+            evt.reply("❌ Sticky messages can only be used in regular text channels.").setEphemeral(true).queue();
+            return;
+        }
+        TextChannel chan = evt.getChannel().asTextChannel();
         TextInput.Builder inp = TextInput.create("stickyMessage", "Sticky", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Sticky Message")
-                .setMinLength(0)
+                .setMinLength(1)
                 .setMaxLength(1024)
                 .setRequired(true);
         Modal modal = null;
         switch (subCommand.toLowerCase()) {
             case "add":
-                modal = Modal.create("stickyAdd|" + evt.getChannel().getId(), "Add Sticky Message")
+                modal = Modal.create("stickyAdd|" + chan.getId(), "Add Sticky Message")
                         .addComponents(ActionRow.of(inp.build()))
                         .build();
                 break;
             case "edit":
-                inp.setValue(API.getInstance().getStickyMessage(evt.getChannel().asTextChannel()));
-                modal = Modal.create("stickyEdit|" + evt.getChannel().getId(), "Edit Sticky Message")
+                String current = API.getInstance().getStickyMessage(chan);
+                if (current.isEmpty()) {
+                    evt.reply("❌ This channel has no sticky message yet. Use `/sticky add` first.").setEphemeral(true).queue();
+                    return;
+                }
+                inp.setValue(current);
+                modal = Modal.create("stickyEdit|" + chan.getId(), "Edit Sticky Message")
                         .addComponents(ActionRow.of(inp.build()))
                         .build();
                 break;
             case "remove":
-                API.getInstance().removeSticky(evt.getChannel().asTextChannel());
+                if (!API.getInstance().removeSticky(chan)) {
+                    evt.reply("❌ The sticky message could not be removed. Check `logs/error.txt` for details.").setEphemeral(true).queue();
+                    return;
+                }
                 // Remove sticky message from channel if it is at bottom
-                StickyManager.removeStickyMessage(evt.getChannel().getIdLong());
+                StickyManager.removeStickyMessage(chan.getIdLong());
                 evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "The stickied message for this channel has been removed...!").build()).setEphemeral(true).queue();
-                Logger.log(ActionType.STICKY_REMOVE, mem, evt.getChannel().asTextChannel(), "N/A");
+                Logger.log(ActionType.STICKY_REMOVE, mem, chan, "N/A");
                 break;
+            default:
+                evt.reply("❌ Error: Unknown subcommand.").setEphemeral(true).queue();
+                return;
         }
         if (modal != null)
             evt.replyModal(modal).queue();

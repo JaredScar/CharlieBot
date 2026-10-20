@@ -1,62 +1,62 @@
 package com.jaredscarito.managers;
 
 import com.jaredscarito.models.PunishmentType;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 
-import java.util.List;
+import java.util.Collections;
 
+/**
+ * Handles the interactions that belong to "/<punishment> remove" (pick one from history, confirm it)
+ * and the shared Cancel button of the "/<punishment> add" rule-selection flow.
+ */
 public class PunishmentManager extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent evt) {
-        List<SelectOption> selOptions = evt.getSelectedOptions();
-        SelectOption selectOption = null;
-        for (SelectOption opt : selOptions) {
-            selectOption = opt;
-        }
-        if (selectOption == null) return;
-        if (!validInt(selectOption.getValue())) return;
-        if (evt.getSelectMenu().getId() == null) return;
-        if (evt.getSelectMenu().getId().split("\\|").length <= 1) return;
-        String pName = evt.getSelectMenu().getId().split("\\|")[0].replace("Remove", "").toUpperCase();
-        PunishmentType punishmentType = null;
-        for (PunishmentType pt : PunishmentType.values()) {
-            if (pName.equals(pt.name()))
-                punishmentType = pt;
-        }
-        String punishedId = evt.getSelectMenu().getId().split("\\|")[1];
-        if (evt.getGuild() == null) return;
-        Member mem = evt.getGuild().getMemberById(punishedId);
-        if (mem == null) return;
-
-        if (punishmentType == null) {
-            // TODO Error encountered... Send error msg
+        String menuId = evt.getComponentId();
+        // Menu ids look like "banRemove|<memberId>"
+        String[] idArgs = menuId.split("\\|");
+        if (idArgs.length < 2 || !idArgs[0].endsWith("Remove")) return;
+        if (evt.getSelectedOptions().isEmpty()) return;
+        String selected = evt.getSelectedOptions().get(0).getValue();
+        int pid;
+        try {
+            pid = Integer.parseInt(selected);
+        } catch (NumberFormatException ex) {
             return;
         }
-
-        ManagerUtils.openModalWithPunishmentData(evt, Integer.parseInt(selectOption.getValue()), mem, punishmentType);
-    }
-
-    private boolean validInt(String i) {
-        try {
-            Integer.parseInt(i);
-        } catch (NumberFormatException ex) {
-            return false;
+        String pName = idArgs[0].substring(0, idArgs[0].length() - "Remove".length()).toUpperCase();
+        PunishmentType punishmentType = null;
+        for (PunishmentType pt : PunishmentType.values()) {
+            if (pName.equals(pt.name())) punishmentType = pt;
         }
-        return true;
+        if (punishmentType == null) {
+            evt.reply("❌ Unknown punishment type.").setEphemeral(true).queue();
+            return;
+        }
+        if (evt.getGuild() == null) return;
+        // a plain id: the user does not have to be in the server (banned users aren't)
+        long targetId;
+        try {
+            targetId = Long.parseLong(idArgs[1]);
+        } catch (NumberFormatException ex) {
+            return;
+        }
+        ManagerUtils.openModalWithPunishmentData(evt, pid, targetId, punishmentType);
     }
 
     @Override
-    public void onModalInteraction(ModalInteractionEvent evt) {
-        String modalId = evt.getModalId();
-        String[] modalArgs = modalId.split("\\|");
-        if (!modalId.contains("Remove")) return; // Not a removal modal... Skip
-        if (modalArgs.length < 3) return; // Not enough arguments to be a punishment
-        String pid = modalArgs[2];
-        if (!this.validInt(pid)) return; // Not a valid PID...
-        ManagerUtils.handleModalPunishmentRemoval(evt, Integer.parseInt(pid));
+    public void onButtonInteraction(ButtonInteractionEvent evt) {
+        String id = evt.getComponentId();
+        if (id.startsWith("punishRemoveConfirm|")) {
+            ManagerUtils.handleButtonPunishmentRemoval(evt);
+        } else if (id.equals("punishRemoveCancel")) {
+            evt.editMessage("Cancelled.").setEmbeds(Collections.emptyList()).setComponents(Collections.emptyList()).queue();
+        } else if (id.contains("RuleSelectDeny")) {
+            // "<type>RuleSelectDeny|<memberId>|<punisherId>" -> drop the saved rule selection and close the prompt
+            ManagerUtils.getRulesSelected().remove(id.replace("RuleSelectDeny", ""));
+            evt.editMessage("Cancelled.").setEmbeds(Collections.emptyList()).setComponents(Collections.emptyList()).queue();
+        }
     }
 }

@@ -1,9 +1,13 @@
 package com.jaredscarito.listeners.commands;
 
 import com.jaredscarito.listeners.api.API;
+import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.timvisee.yamlwrapper.ConfigurationSection;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
@@ -16,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PointsCommand {
+    private static final String STORE_PATH = "Bot.Messaging.Points.Store.Items";
+
     public static void invoke(SlashCommandInteractionEvent evt) {
         Member mem = evt.getMember();
         if (mem == null || mem.getUser().isBot()) return;
@@ -67,22 +73,30 @@ public class PointsCommand {
             API.getInstance().sendErrorMessage(evt, mem, "Error", "Target member not found!");
             return;
         }
-        
+        if (target.getIdLong() == mem.getIdLong()) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "You can't give points to yourself!");
+            return;
+        }
+        if (target.getUser().isBot()) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "You can't give points to a bot!");
+            return;
+        }
         if (amount <= 0) {
             API.getInstance().sendErrorMessage(evt, mem, "Error", "Amount must be positive!");
             return;
         }
         
-        // Check if user has enough points to give
-        int userPoints = API.getInstance().getPoints(mem);
-        if (userPoints < amount) {
+        // Take the points atomically (fails if the balance is too low, even with concurrent commands)
+        if (!API.getInstance().tryRemovePoints(mem, amount)) {
             API.getInstance().sendErrorMessage(evt, mem, "Error", "You don't have enough points to give!");
             return;
         }
-        
-        // Transfer points
-        API.getInstance().removePoints(mem, amount);
-        API.getInstance().addPoints(target, amount);
+        if (!API.getInstance().addPoints(target, amount)) {
+            // Could not credit the receiver: give the points back
+            API.getInstance().addPoints(mem, amount);
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "The transfer failed, you were not charged.");
+            return;
+        }
         
         String coinName = Main.getInstance().getConfig().getString("Bot.Messaging.Points.Name", "Charlie Coins");
         EmbedBuilder eb = new EmbedBuilder();
@@ -108,135 +122,157 @@ public class PointsCommand {
             String medal = getMedalEmoji(i + 1);
             description.append(medal).append(" **").append(entry.name).append("** - ").append(entry.points).append(" ").append(coinName).append("\n");
         }
+        if (description.length() == 0) {
+            // an embed with an empty description is rejected by Discord
+            description.append("Nobody has earned any ").append(coinName).append(" yet.");
+        }
         
         eb.setDescription(description.toString());
         eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
         
         evt.replyEmbeds(eb.build()).queue();
     }
-    
+
+    // ------------------------------------------------------------------------------------------
+    // Store (configured in config.yml under Bot.Messaging.Points.Store.Items)
+    // ------------------------------------------------------------------------------------------
+
+    /** A purchasable reward: pay points, receive a role. */
+    private static final class StoreItem {
+        final String key;
+        final String name;
+        final String description;
+        final int cost;
+        final Role role;
+
+        StoreItem(String key, String name, String description, int cost, Role role) {
+            this.key = key;
+            this.name = name;
+            this.description = description;
+            this.cost = cost;
+            this.role = role;
+        }
+    }
+
+    /**
+     * Reads the store from the config. An item only counts when it has a positive Cost and a Role that exists in
+     * the server, so nothing is ever offered that can't actually be delivered.
+     */
+    private static List<StoreItem> loadStoreItems(Guild guild) {
+        List<StoreItem> items = new ArrayList<>();
+        ConfigurationSection section = Main.getInstance().getConfig().getConfigurationSection(STORE_PATH);
+        if (section == null) return items;
+        List<String> keys = section.getKeys();
+        if (keys == null) return items;
+        for (String key : keys) {
+            String base = STORE_PATH + "." + key;
+            int cost = Main.getInstance().getConfig().getInt(base + ".Cost");
+            Object rawRole = Main.getInstance().getConfig().get(base + ".Role");
+            if (cost <= 0 || rawRole == null) continue;
+            Role role;
+            try {
+                role = guild.getRoleById(String.valueOf(rawRole).trim());
+            } catch (NumberFormatException ex) {
+                continue; // not a valid role id
+            }
+            if (role == null) continue;
+            String name = Main.getInstance().getConfig().getString(base + ".Name", key);
+            String description = Main.getInstance().getConfig().getString(base + ".Description", "");
+            items.add(new StoreItem(key, name, description == null ? "" : description, cost, role));
+        }
+        return items;
+    }
+
+    private static String shorten(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max - 3) + "...";
+    }
+
     private static void showStore(SlashCommandInteractionEvent evt, Member mem) {
+        Guild guild = evt.getGuild();
+        if (guild == null) return;
+        String coinName = Main.getInstance().getConfig().getString("Bot.Messaging.Points.Name", "Charlie Coins");
+        List<StoreItem> items = loadStoreItems(guild);
+
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle("🛒 Charlie's Store");
-        eb.setDescription("Welcome to Charlie's store! Here you can redeem your points for special items.");
         eb.setColor(Color.CYAN);
-        
-        // Add store items from config
-        eb.addField("🎨 Custom Role", "1000 points - Get a custom role with your name!", false);
-        eb.addField("🎭 Custom Nickname", "500 points - Change your nickname!", false);
-        eb.addField("🎁 Special Badge", "2000 points - Get a special Charlie badge!", false);
-        eb.addField("💎 VIP Status", "5000 points - Get VIP perks for a week!", false);
-        
         eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
-        
+        if (items.isEmpty()) {
+            eb.setDescription("The store is empty right now. Check back later!");
+        } else {
+            eb.setDescription("Redeem your " + coinName + " for these rewards with `/points redeem item:<name>`.");
+            // an embed holds at most 25 fields
+            for (int i = 0; i < Math.min(items.size(), 25); i++) {
+                StoreItem item = items.get(i);
+                String value = (item.description.isEmpty() ? "" : item.description + "\n")
+                        + "Reward: " + item.role.getAsMention() + "\nRedeem with: `" + item.key + "`";
+                eb.addField(shorten(item.name + " - " + item.cost + " " + coinName, 256), shorten(value, 1024), false);
+            }
+        }
         evt.replyEmbeds(eb.build()).queue();
     }
     
     private static void redeemItem(SlashCommandInteractionEvent evt, Member mem) {
         OptionMapping itemOpt = evt.getOption("item");
         OptionMapping amountOpt = evt.getOption("amount");
+        Guild guild = evt.getGuild();
+        if (guild == null) return;
         
         if (itemOpt == null) {
             API.getInstance().sendErrorMessage(evt, mem, "Error", "Please specify an item to redeem!");
             return;
         }
-        
-        String item = itemOpt.getAsString();
-        int amount = amountOpt != null ? amountOpt.getAsInt() : 1;
-        
-        if (amount <= 0) {
-            API.getInstance().sendErrorMessage(evt, mem, "Error", "Amount must be positive!");
+        if (amountOpt != null && amountOpt.getAsInt() != 1) {
+            // every reward is a role, which you can only own once
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "Store items can only be redeemed one at a time!");
             return;
         }
-        
-        // Handle different items
-        switch (item.toLowerCase()) {
-            case "role", "custom role" -> redeemCustomRole(evt, mem, amount);
-            case "nickname", "custom nickname" -> redeemCustomNickname(evt, mem, amount);
-            case "badge", "special badge" -> redeemSpecialBadge(evt, mem, amount);
-            case "vip", "vip status" -> redeemVipStatus(evt, mem, amount);
-            default -> API.getInstance().sendErrorMessage(evt, mem, "Error", "Unknown item! Use `/points store` to see available items.");
+
+        String wanted = itemOpt.getAsString().trim();
+        StoreItem item = null;
+        for (StoreItem candidate : loadStoreItems(guild)) {
+            if (candidate.key.equalsIgnoreCase(wanted) || candidate.name.equalsIgnoreCase(wanted)) {
+                item = candidate;
+                break;
+            }
         }
-    }
-    
-    private static void redeemCustomRole(SlashCommandInteractionEvent evt, Member mem, int amount) {
-        int cost = 1000 * amount;
-        int userPoints = API.getInstance().getPoints(mem);
-        
-        if (userPoints < cost) {
-            API.getInstance().sendErrorMessage(evt, mem, "Error", "You need " + cost + " points for this item!");
+        if (item == null) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "Unknown item! Use `/points store` to see available items.");
             return;
         }
-        
-        API.getInstance().removePoints(mem, cost);
-        
-        EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("✅ Custom Role Redeemed!");
-        eb.setDescription("You redeemed " + amount + " custom role(s) for " + cost + " points!");
-        eb.setColor(Color.GREEN);
-        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
-        
-        evt.replyEmbeds(eb.build()).queue();
-    }
-    
-    private static void redeemCustomNickname(SlashCommandInteractionEvent evt, Member mem, int amount) {
-        int cost = 500 * amount;
-        int userPoints = API.getInstance().getPoints(mem);
-        
-        if (userPoints < cost) {
-            API.getInstance().sendErrorMessage(evt, mem, "Error", "You need " + cost + " points for this item!");
+        if (mem.getRoles().contains(item.role)) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "You already own this reward!");
             return;
         }
-        
-        API.getInstance().removePoints(mem, cost);
-        
-        EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("✅ Custom Nickname Redeemed!");
-        eb.setDescription("You redeemed " + amount + " custom nickname(s) for " + cost + " points!");
-        eb.setColor(Color.GREEN);
-        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
-        
-        evt.replyEmbeds(eb.build()).queue();
-    }
-    
-    private static void redeemSpecialBadge(SlashCommandInteractionEvent evt, Member mem, int amount) {
-        int cost = 2000 * amount;
-        int userPoints = API.getInstance().getPoints(mem);
-        
-        if (userPoints < cost) {
-            API.getInstance().sendErrorMessage(evt, mem, "Error", "You need " + cost + " points for this item!");
+        if (!guild.getSelfMember().canInteract(item.role)) {
+            // the bot's role sits below the reward role: say so BEFORE taking any points
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "I can't hand out this reward right now. Please tell a staff member.");
             return;
         }
-        
-        API.getInstance().removePoints(mem, cost);
-        
-        EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("✅ Special Badge Redeemed!");
-        eb.setDescription("You redeemed " + amount + " special Charlie badge(s) for " + cost + " points!");
-        eb.setColor(Color.GREEN);
-        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
-        
-        evt.replyEmbeds(eb.build()).queue();
-    }
-    
-    private static void redeemVipStatus(SlashCommandInteractionEvent evt, Member mem, int amount) {
-        int cost = 5000 * amount;
-        int userPoints = API.getInstance().getPoints(mem);
-        
-        if (userPoints < cost) {
-            API.getInstance().sendErrorMessage(evt, mem, "Error", "You need " + cost + " points for this item!");
+
+        final StoreItem bought = item;
+        // atomic: fails if the balance is too low, even with concurrent commands
+        if (!API.getInstance().tryRemovePoints(mem, bought.cost)) {
+            API.getInstance().sendErrorMessage(evt, mem, "Error", "You need " + bought.cost + " points for this item!");
             return;
         }
-        
-        API.getInstance().removePoints(mem, cost);
-        
-        EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("✅ VIP Status Redeemed!");
-        eb.setDescription("You redeemed " + amount + " week(s) of VIP status for " + cost + " points!");
-        eb.setColor(Color.GREEN);
-        eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
-        
-        evt.replyEmbeds(eb.build()).queue();
+
+        // Granting the role is a Discord request: acknowledge first, then report the outcome
+        evt.deferReply().queue();
+        guild.addRoleToMember(mem, bought.role).queue((v) -> {
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setTitle("✅ " + bought.name + " Redeemed!");
+            eb.setDescription("You redeemed **" + bought.name + "** for " + bought.cost + " points and received " + bought.role.getAsMention() + "!");
+            eb.setColor(Color.GREEN);
+            eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+            evt.getHook().sendMessageEmbeds(eb.build()).queue();
+        }, (error) -> {
+            // The reward could not be delivered: give the points back
+            Logger.log(error);
+            API.getInstance().addPoints(mem, bought.cost);
+            evt.getHook().sendMessage("❌ I couldn't give you the reward, so you were not charged: " + error.getMessage()).queue();
+        });
     }
     
     private static List<LeaderboardEntry> getLeaderboard() {
@@ -253,6 +289,7 @@ public class PointsCommand {
                 }
             }
         } catch (SQLException e) {
+            Logger.log(e);
             e.printStackTrace();
         }
         

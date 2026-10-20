@@ -4,10 +4,13 @@ import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.main.Main;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -42,18 +45,35 @@ public class RuleCommand {
         eb.setColor(Color.BLUE);
         eb.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
         
-        StringBuilder rulesText = new StringBuilder();
-        for (Map.Entry<String, String> entry : rules.entrySet()) {
-            rulesText.append("**").append(entry.getKey()).append("** - ").append(entry.getValue()).append("\n\n");
-        }
-        
-        if (rulesText.length() > 0) {
-            eb.setDescription(rulesText.toString());
-        } else {
+        if (rules.isEmpty()) {
             eb.setDescription("No rules have been set yet. Use `/rules add` to add the first rule!");
+            evt.replyEmbeds(eb.build()).queue();
+            return;
         }
         
-        evt.replyEmbeds(eb.build()).queue();
+        // An embed description holds 4096 characters at most, so split long rule lists over several embeds
+        List<MessageEmbed> embeds = new ArrayList<>();
+        StringBuilder chunk = new StringBuilder();
+        for (Map.Entry<String, String> entry : rules.entrySet()) {
+            String line = "**" + entry.getKey() + "** - " + entry.getValue() + "\n\n";
+            if (line.length() > 4000) line = line.substring(0, 3997) + "...";
+            if (chunk.length() + line.length() > 4000) {
+                embeds.add(new EmbedBuilder().setColor(Color.BLUE).setDescription(chunk.toString()).build());
+                chunk.setLength(0);
+            }
+            chunk.append(line);
+        }
+        if (chunk.length() > 0) {
+            embeds.add(new EmbedBuilder().setColor(Color.BLUE).setDescription(chunk.toString()).build());
+        }
+        // the first embed carries the title/author
+        EmbedBuilder first = new EmbedBuilder(embeds.get(0));
+        first.setTitle("📋 Server Rules");
+        first.setAuthor(mem.getEffectiveName(), mem.getAvatarUrl());
+        embeds.set(0, first.build());
+        
+        // Discord allows 10 embeds per message
+        evt.replyEmbeds(embeds.size() > 10 ? embeds.subList(0, 10) : embeds).queue();
     }
     
     private static void addRule(SlashCommandInteractionEvent evt, Member mem) {
@@ -171,24 +191,36 @@ public class RuleCommand {
     }
     
     private static String findRulePath(String ruleId) {
-        // Search through all sections to find the rule
+        if (ruleId == null) return null;
+        ruleId = ruleId.trim();
+        String rawKeyMatch = null;
+        // Search through all sections to find the rule.
+        // The numbering below mirrors API.getRules(), so the IDs shown by /rules view (e.g. "2.3") work here.
         try {
             var sectionsConfig = Main.getInstance().getConfig().getConfigurationSection("Rules.Sections");
             if (sectionsConfig != null) {
+                int sectionNumber = 1;
                 for (String section : sectionsConfig.getKeys()) {
                     var sectionConfig = sectionsConfig.getConfigurationSection(section);
                     if (sectionConfig != null) {
+                        int ruleNumber = 1;
                         for (String key : sectionConfig.getKeys()) {
-                            if (key.equals(ruleId)) {
-                                return "Rules.Sections." + section + "." + key;
+                            String path = "Rules.Sections." + section + "." + key;
+                            if (Main.getInstance().getConfig().getString(path) == null) continue;
+                            if ((sectionNumber + "." + ruleNumber).equals(ruleId)) {
+                                return path;
                             }
+                            // legacy behaviour: the raw config key (first match wins)
+                            if (rawKeyMatch == null && key.equals(ruleId)) rawKeyMatch = path;
+                            ruleNumber++;
                         }
                     }
+                    sectionNumber++;
                 }
             }
         } catch (Exception ignored) {
             // Return null if there's an error
         }
-        return null;
+        return rawKeyMatch;
     }
 }

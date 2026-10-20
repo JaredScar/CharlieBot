@@ -39,6 +39,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 
 public class TicketManager extends ListenerAdapter {
@@ -51,7 +52,7 @@ public class TicketManager extends ListenerAdapter {
             TextChannel chan = guild.getChannelById(TextChannel.class, getConfigValue("Bot.Tickets.Channel"));
             if (chan == null) return;
             String msgID = getConfigValue("Bot.Tickets.MessageID");
-            if (!msgID.isEmpty()) {
+            if (msgID != null && !msgID.isEmpty()) {
                 // We need to delete it and set up the new one
                 chan.purgeMessagesById(msgID);
             }
@@ -61,6 +62,7 @@ public class TicketManager extends ListenerAdapter {
                 Main.getInstance().saveConfig();
             });
         } catch (NullPointerException ex) {
+            Logger.log(ex);
             ex.printStackTrace();
         }
     }
@@ -94,24 +96,51 @@ public class TicketManager extends ListenerAdapter {
         return null;
     }
 
+    /**
+     * Staff check: members holding one of this ticket type's Manage_Roles (or server administrators).
+     * This used to look at Roles_Required, which only says who may OPEN a ticket of that type.
+     */
     public boolean canManageTicket(Member mem, String ticket_type) {
-        List<String> roles_required = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + ticket_type + ".Roles_Required");
+        if (mem.hasPermission(Permission.ADMINISTRATOR)) return true;
+        if (ticket_type == null) return false;
+        List<String> manage_roles = Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + ticket_type + ".Manage_Roles");
         List<Role> memRoles = mem.getRoles();
         for (Role r : memRoles) {
-            if (roles_required.contains(r.getId()))
+            if (manage_roles.contains(r.getId()))
                 return true;
         }
         return false;
     }
 
+    public boolean isTicketOwner(Member mem, TextChannel chan) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `ticket_owner` FROM `tickets` WHERE `channel_id` = ?")) {
+            stmt.setLong(1, chan.getIdLong());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next())
+                    return rs.getLong("ticket_owner") == mem.getIdLong();
+            }
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
+        return false;
+    }
+
+    /** Closing is allowed for the staff of the ticket type and for the member who opened the ticket. */
+    public boolean canCloseTicket(Member mem, TextChannel chan) {
+        return canManageTicket(mem, getTicketTypeById(chan.getIdLong())) || isTicketOwner(mem, chan);
+    }
+
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent evt) {
+        // Check the id first: this listener sees every select menu, and must not answer menus that aren't ours
+        if (!evt.getComponentId().equals("ticketSelectMenu")) return;
+
         if (evt.getMember() == null) {
             evt.reply("❌ Error: Unable to identify member.").setEphemeral(true).queue();
             return;
         }
-        
-        if (!evt.getComponentId().equals("ticketSelectMenu")) return;
         
         List<SelectOption> selectedOpts = evt.getSelectedOptions();
         if (selectedOpts.isEmpty()) {
@@ -188,6 +217,10 @@ public class TicketManager extends ListenerAdapter {
         if (params.length < 2) {
             switch (params[0]) {
                 case "closeAndSaveTicket" -> {
+                    if (!(evt.getChannel() instanceof TextChannel) || !canCloseTicket(mem, evt.getChannel().asTextChannel())) {
+                        evt.reply("❌ You lack permissions to close this ticket...").setEphemeral(true).queue();
+                        return;
+                    }
                     // Bring up modal to get reason
                     TextInput inp = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
                             .setPlaceholder("Reason for closure")
@@ -202,6 +235,10 @@ public class TicketManager extends ListenerAdapter {
                 }
                 case "lockTicket" -> {
                     if (evt.getChannel() instanceof TextChannel) {
+                        if (!canManageTicket(mem, getTicketTypeById(evt.getChannel().getIdLong()))) {
+                            evt.reply("❌ You lack permissions to manage this ticket...").setEphemeral(true).queue();
+                            return;
+                        }
                         boolean ticketWasLocked = this.lockTicket(evt.getChannel().asTextChannel(), evt.getMember());
                         if (ticketWasLocked) {
                             evt.reply("✅ Ticket has been locked.").setEphemeral(true).queue();
@@ -213,6 +250,10 @@ public class TicketManager extends ListenerAdapter {
                 }
                 case "unlockTicket" -> {
                     if (evt.getChannel() instanceof TextChannel) {
+                        if (!canManageTicket(mem, getTicketTypeById(evt.getChannel().getIdLong()))) {
+                            evt.reply("❌ You lack permissions to manage this ticket...").setEphemeral(true).queue();
+                            return;
+                        }
                         boolean ticketWasUnlocked = this.unlockTicket(evt.getChannel().asTextChannel(), evt.getMember());
                         if (ticketWasUnlocked) {
                             evt.reply("✅ Ticket has been unlocked.").setEphemeral(true).queue();
@@ -307,9 +348,21 @@ public class TicketManager extends ListenerAdapter {
                                             String newLine = System.getProperty("line.separator");
                                             String newMsg = startMessage.replace("\\n", newLine);
                                             textChan.sendMessage(newMsg).queue();
-                                            Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                         }
+                                        // Log every created ticket, not only those that have a start message
+                                        Logger.log(ActionType.CREATE_TICKET, evt.getMember(), textChan, "");
                                     }, (error) -> {
+                                        Logger.log(error);
+                                        // The channel never got created: drop the orphaned database row again
+                                        Connection cleanup = Main.getInstance().getSqlHelper().getConn();
+                                        if (cleanup != null) {
+                                            try (PreparedStatement del = cleanup.prepareStatement("DELETE FROM `tickets` WHERE `ticket_id` = ?")) {
+                                                del.setInt(1, ticketId);
+                                                del.executeUpdate();
+                                            } catch (SQLException ex) {
+                                                Logger.log(ex);
+                                            }
+                                        }
                                         evt.getHook().editOriginal("❌ Error: Failed to create ticket channel: " + error.getMessage()).queue();
                                         error.printStackTrace();
                                     });
@@ -342,10 +395,16 @@ public class TicketManager extends ListenerAdapter {
         if (params.length > 1) {
             if (params[0].equals("closeTicketAndSaveModal")) {
                 String channelId = params[1];
-                String reason = Objects.requireNonNull(evt.getValue("reason")).getAsString();
+                ModalMapping reasonMapping = evt.getValue("reason");
+                String reason = reasonMapping == null ? "" : reasonMapping.getAsString();
                 if (evt.getGuild() != null) {
                     TextChannel channel = evt.getGuild().getTextChannelById(channelId);
                     if (channel != null) {
+                        // re-check on submit: the modal id is only a string and can't be trusted on its own
+                        if (evt.getMember() == null || !canCloseTicket(evt.getMember(), channel)) {
+                            evt.reply("❌ You lack permissions to close this ticket...").setEphemeral(true).queue();
+                            return;
+                        }
                         if (this.deleteTicketFromDB(channel)) {
                             this.saveTicket(channel, evt.getMember(), reason);
                             // it was saved, delete it
@@ -420,13 +479,25 @@ public class TicketManager extends ListenerAdapter {
             List<Member> chanMembers = chan.getMembers();
             List<Permission> allows = new ArrayList<>();
             List<Permission> denies = new ArrayList<>();
+            // putMemberPermissionOverride REPLACES the whole override, so the member must keep seeing the ticket
+            allows.add(Permission.VIEW_CHANNEL);
+            allows.add(Permission.MESSAGE_HISTORY);
             denies.add(Permission.MESSAGE_SEND);
             denies.add(Permission.MESSAGE_SEND_IN_THREADS);
             denies.add(Permission.MESSAGE_ADD_REACTION);
+            String lockTicketType = getTicketTypeById(chan.getIdLong());
+            List<String> staffRoles = lockTicketType == null ? new ArrayList<>()
+                    : Main.getInstance().getConfig().getStringList("Bot.Tickets.Ticket_Options." + lockTicketType + ".Manage_Roles");
             TextChannelManager manager = chan.getManager();
             for (Member mem : chanMembers) {
-                if (!mem.getUser().isBot())
-                    manager.putMemberPermissionOverride(mem.getIdLong(), allows, denies);
+                if (mem.getUser().isBot()) continue;
+                // staff that manage this ticket type must still be able to talk in a locked ticket
+                boolean isStaff = false;
+                for (Role r : mem.getRoles()) {
+                    if (staffRoles.contains(r.getId())) { isStaff = true; break; }
+                }
+                if (isStaff) continue;
+                manager.putMemberPermissionOverride(mem.getIdLong(), allows, denies);
             }
             manager.queue();
             try (PreparedStatement stmt2 = conn.prepareStatement("SELECT `message_id` FROM `tickets` WHERE `channel_id` = ?")) {
@@ -468,6 +539,8 @@ public class TicketManager extends ListenerAdapter {
             allows.add(Permission.MESSAGE_SEND);
             allows.add(Permission.MESSAGE_SEND_IN_THREADS);
             allows.add(Permission.MESSAGE_ADD_REACTION);
+            allows.add(Permission.MESSAGE_HISTORY);
+            allows.add(Permission.VIEW_CHANNEL);
             TextChannelManager manager = chan.getManager();
             for (Member mem : chanMembers) {
                 if (!mem.getUser().isBot())

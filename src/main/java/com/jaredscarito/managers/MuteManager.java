@@ -42,14 +42,33 @@ public class MuteManager extends ListenerAdapter {
         Member muteUser = evt.getGuild().getMemberById(userId);
         if (muteUser == null) return;
         String fullUserName = muteUser.getUser().getName() + "#" + muteUser.getUser().getDiscriminator();
+        if (ManagerUtils.getMuteRole(evt.getGuild()) == null) {
+            evt.reply("❌ The mute role is not configured (or no longer exists). Set `Bot.Commands.Mute_Role` in config.yml to a valid role ID.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+        // Validate the duration BEFORE consuming the saved rule selection, so after a typo the moderator can
+        // simply press "Submit" again on the same prompt.
+        Long durationMillis;
+        try {
+            durationMillis = PunishmentEffects.parseDuration(durationFilter.getAsString());
+        } catch (IllegalArgumentException ex) {
+            evt.reply("❌ I couldn't understand the duration `" + durationFilter.getAsString() + "`. Use for example `30m`, `2h`, `7d` or `1w` " +
+                    "(a plain number means hours, `0` means permanent). Press **Submit** again to retry.").setEphemeral(true).queue();
+            return;
+        }
+        List<String> ruleIds = ManagerUtils.getRulesSelected().remove(evt.getModalId());
+        if (ruleIds == null) {
+            evt.reply("❌ This prompt has expired. Please run the command again.").setEphemeral(true).queue();
+            return;
+        }
+        ManagerUtils.handleMuteMember(muteUser);
+        // the scheduler lifts the mute again once this runs out (a null duration is permanent)
+        PunishmentEffects.trackMute(muteUser.getIdLong(), durationMillis);
         Logger.log(ActionType.MUTE_CREATE, evt.getMember(), muteUser, reason);
-        HashMap<String, List<String>> rulesSelected = ManagerUtils.getRulesSelected();
-        List<String> ruleIds = rulesSelected.get(evt.getModalId());
-        if (ruleIds == null) return;
-        rulesSelected.put(evt.getModalId(), null);
         API.getInstance().logPunishment(muteUser, evt.getMember(), PunishmentType.MUTE, durationFilter.getAsString(), ruleIds, reason);
-        if (ManagerUtils.handleMuteMember(muteUser))
-            evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success", "User `" + fullUserName + "` has been muted...").build()).setEphemeral(true).queue();
+        evt.replyEmbeds(API.getInstance().sendSuccessMessage(evt.getMember(), "Success",
+                "User `" + fullUserName + "` has been muted " + PunishmentEffects.describeDuration(durationMillis) + "...").build()).setEphemeral(true).queue();
     }
 
     @Override
@@ -86,10 +105,10 @@ public class MuteManager extends ListenerAdapter {
                 .setMaxLength(1024)
                 .setRequired(true)
                 .build();
-        TextInput numInput = TextInput.create("duration", "Duration", TextInputStyle.SHORT)
-                .setPlaceholder("1")
-                .setMinLength(0)
-                .setMaxLength(999).setRequired(true).build();
+        TextInput numInput = TextInput.create("duration", "Duration (30m, 2h, 7d, 1w - 0 = permanent)", TextInputStyle.SHORT)
+                .setPlaceholder("e.g. 2h")
+                .setMinLength(1)
+                .setMaxLength(20).setRequired(true).build();
         Modal modal = Modal.create("muteUser"
                         + "|" + user.getId() + "|" + punisher.getId(), "Mute User " + user.getName() + "#" + user.getDiscriminator())
                 .addComponents(ActionRow.of(numInput), ActionRow.of(inp))

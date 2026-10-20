@@ -2,8 +2,10 @@ package com.jaredscarito.listeners.api;
 
 import java.awt.Color;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,12 +14,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
@@ -76,6 +78,7 @@ public class API {
     }
 
     public void logPunishment(Member punishedMember, Member punisher, PunishmentType punishmentType, String punishmentLength, List<String> ruleIds_broken, String reason) {
+        if (ruleIds_broken == null) ruleIds_broken = new ArrayList<>();
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         if (conn == null) return;
         try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO `punishments` (`discord_id`, `datetime`, `ruleIds_broken`, `lastKnownName`, `lastKnownAvatar`, `punishment_type`, `punishment_length`, `reason`, `punished_by`, `punished_by_lastKnownName`, `punished_by_lastKnownAvatar`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
@@ -86,13 +89,13 @@ public class API {
             stmt.setString(2, datetimeStr);
             stmt.setString(3, String.join(", ", ruleIds_broken));
             stmt.setString(4, punishedMember.getUser().getName() + "#" + punishedMember.getUser().getDiscriminator());
-            stmt.setString(5, punishedMember.getUser().getAvatarUrl());
+            stmt.setString(5, punishedMember.getUser().getEffectiveAvatarUrl());
             stmt.setString(6, punishmentType.name());
             stmt.setString(7, punishmentLength);
             stmt.setString(8, reason);
             stmt.setLong(9, punisher.getIdLong());
             stmt.setString(10, punisher.getUser().getName() + "#" + punisher.getUser().getDiscriminator());
-            stmt.setString(11, punisher.getUser().getAvatarUrl());
+            stmt.setString(11, punisher.getUser().getEffectiveAvatarUrl());
             stmt.execute();
         } catch (SQLException e) {
             Logger.log(e);
@@ -103,12 +106,12 @@ public class API {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         if (conn == null) return new ArrayList<>();
         List<PunishmentData> punishments = new ArrayList<>();
-        try (PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `punishments` WHERE `discord_id` = ?")) {
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `punishments` WHERE `discord_id` = ? ORDER BY `pid` DESC")) {
             stmt.setLong(1, discordId);
             try (ResultSet res = stmt.executeQuery()) {
                 while (res.next()) {
                     int pid = res.getInt("pid");
-                    Date datetime = res.getDate("datetime");
+                    Date datetime = res.getTimestamp("datetime");
                     String ruleIds = res.getString("ruleIds_broken");
                     String lastKnownName = res.getString("lastKnownName");
                     String lastKnownAvatar = res.getString("lastKnownAvatar");
@@ -240,7 +243,7 @@ public class API {
                 "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` + ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
-            String avatarUrl = mem.getUser().getAvatarUrl();
+            String avatarUrl = mem.getUser().getEffectiveAvatarUrl();
             stmt.setLong(1, discordId);
             stmt.setString(2, name);
             stmt.setString(3, avatarUrl);
@@ -263,7 +266,7 @@ public class API {
                 "`lastKnownName` = ?, `lastKnownAvatar` = ?, `points` = `points` - ? WHERE `discord_id` = ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
-            String avatarUrl = mem.getUser().getAvatarUrl();
+            String avatarUrl = mem.getUser().getEffectiveAvatarUrl();
             stmt.setString(1, name);
             stmt.setString(2, avatarUrl);
             stmt.setInt(3, points);
@@ -273,6 +276,24 @@ public class API {
         } catch (SQLException e) {
             Logger.log(e);
             e.printStackTrace();
+        }
+        return false;
+    }
+    /**
+     * Atomically deducts points only if the member can afford it.
+     * Prevents negative balances when several bets/purchases race each other.
+     */
+    public boolean tryRemovePoints(Member mem, int points) {
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement("UPDATE `points` SET `points` = `points` - ? " +
+                "WHERE `discord_id` = ? AND `points` >= ?")) {
+            stmt.setInt(1, points);
+            stmt.setLong(2, mem.getIdLong());
+            stmt.setInt(3, points);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.log(e);
         }
         return false;
     }
@@ -302,7 +323,7 @@ public class API {
                 "`lastKnownName` = ?, `lastKnownAvatar` = ?, `exp` = `exp` + ?")) {
             long discordId = mem.getIdLong();
             String name = mem.getUser().getName() + "#" + mem.getUser().getDiscriminator();
-            String avatarUrl = mem.getUser().getAvatarUrl();
+            String avatarUrl = mem.getUser().getEffectiveAvatarUrl();
             stmt.setLong(1, discordId);
             stmt.setString(2, name);
             stmt.setString(3, avatarUrl);
@@ -437,8 +458,10 @@ public class API {
     }
     public MessageCreateAction createTicketCloseMessage(TextChannel chan, Member ticketCreator) {
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle(getConfigValue("Bot.Tickets.Ticket_Close_Title").replace("{NAME}", ticketCreator.getEffectiveName()));
-        eb.setDescription(getConfigValue("Bot.Tickets.Ticket_Close_Body").replace("{NAME}", ticketCreator.getEffectiveName()));
+        String closeTitle = getConfigValue("Bot.Tickets.Ticket_Close_Title");
+        String closeBody = getConfigValue("Bot.Tickets.Ticket_Close_Body");
+        eb.setTitle((closeTitle == null ? "Welcome to your ticket, {NAME}" : closeTitle).replace("{NAME}", ticketCreator.getEffectiveName()));
+        eb.setDescription((closeBody == null ? "A staff member will be with you shortly." : closeBody).replace("{NAME}", ticketCreator.getEffectiveName()));
         Button closeAndSaveButton = Button.danger("closeAndSaveTicket", getConfigValue("Bot.Tickets.Close_Ticket_Button"));
         Button lockButton = Button.secondary("lockTicket", getConfigValue("Bot.Tickets.Lock_Ticket_Button"));
         Button unlockButton = Button.secondary("unlockTicket", getConfigValue("Bot.Tickets.Unlock_Ticket_Button")).asDisabled();
@@ -462,158 +485,109 @@ public class API {
         evt.replyEmbeds(eb.build()).addActionRow(confirmBtn, denyBtn).setEphemeral(true).queue();
     }
 
+    private static String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private static final String TICKET_LOG_STYLE = """
+            body { background-color: #36393F; }
+            .container-fluid { background-color: #36393F; color: white; }
+            #header { background-color: #303339; }
+            #hashtag { color: #6d7279; font-weight: bold; font-size: 32px; vertical-align: middle; margin-right: 30px; }
+            span#channelName { font-weight: bold; font-size: 22px; vertical-align: middle; }
+            .rounded-circle { width: 50px; height: 50px; }
+            .profilename { margin-left: 15px; margin-right: 15px; vertical-align: top; }
+            .message-content { margin-left: 15px; }
+            .message-block:hover { background-color: #2e3239; }
+            .timestamp { color: #707070; font-size: 13px; vertical-align: top; }
+            .message-block { padding: 20px; }
+            a { color: #00b0f4; }
+            """;
+
+    /**
+     * Saves a transcript of the channel to ticket_logs/ and uploads it to the configured log channel.
+     * The history is fetched asynchronously, so the file is only written once every message has arrived.
+     * All user-supplied text is HTML-escaped so a transcript can never run script when opened.
+     */
     public void saveTicketToFile(TextChannel chan, Member closer, String closeReason, Consumer<Boolean> result) {
         File ticketSaveDir = new File("ticket_logs");
         if (!ticketSaveDir.exists()) ticketSaveDir.mkdirs();
-        
-        File attachmentsDir = new File("ticket_logs/attachments");
-        if (!attachmentsDir.exists()) attachmentsDir.mkdirs();
-        
-        File logFile = new File("ticket_logs/" + chan.getId() + "-log.html");
-        FileWriter writer = null;
-        try {
-            logFile.createNewFile();
-            writer = new FileWriter(logFile);
-            writer.write("<!DOCTYPE html>\n" +
-                    "<html lang=\"en\">\n" +
-                    "<head>\n" +
-                    "    <meta charset=\"UTF-8\">\n" +
-                    "    <title>#" + chan.getIdLong() + " " + chan.getName() + "</title>\n" +
-                    "    <link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css\" integrity=\"sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z\" crossorigin=\"anonymous\">\n" +
-                    "    <style>\n" +
-                    "        body {\n" +
-                    "            background-color: #36393F;\n" +
-                    "        }\n" +
-                    "        .container-fluid {\n" +
-                    "            background-color: #36393F;\n" +
-                    "            color: white;\n" +
-                    "        }\n" +
-                    "        #header {\n" +
-                    "            background-color: #303339;\n" +
-                    "        }\n" +
-                    "        #hashtag {\n" +
-                    "            color: #6d7279;\n" +
-                    "            font-weight: bold;\n" +
-                    "            font-size: 32px;\n" +
-                    "            vertical-align: middle;\n" +
-                    "            margin-right: 30px;\n" +
-                    "        }\n" +
-                    "        span#channelName {\n" +
-                    "            font-weight: bold;\n" +
-                    "            font-size: 22px;\n" +
-                    "            vertical-align: middle;\n" +
-                    "        }\n" +
-                    "        .rounded-circle {\n" +
-                    "            width: 50px;\n" +
-                    "            height: 50px;\n" +
-                    "        }\n" +
-                    "        .profilename {\n" +
-                    "            margin-left: 15px;\n" +
-                    "            margin-right: 15px;\n" +
-                    "            vertical-align: top;\n" +
-                    "        }\n" +
-                    "        .message-content {\n" +
-                    "            margin-left: 15px;\n" +
-                    "        }\n" +
-                    "        .message-block:hover {\n" +
-                    "            background-color: #2e3239;\n" +
-                    "        }\n" +
-                    "        .timestamp {\n" +
-                    "            color: #707070;\n" +
-                    "            font-size: 13px;\n" +
-                    "            vertical-align: top;\n" +
-                    "        }\n" +
-                    "        .message-block {\n" +
-                    "            padding: 20px;\n" +
-                    "        }\n" +
-                    "    </style>\n" +
-                    "</head>\n" +
-                    "<body>\n" +
-                    "<div class=\"container-fluid\">\n" +
-                    "    <div class=\"row sticky-top\" id=\"header\">\n" +
-                    "        <div class=\"col-lg-12\">\n" +
-                    "            <span id=\"hashtag\">#</span><span id=\"channelName\">" + chan.getName() + "</span>\n" +
-                    "        </div>\n" +
-                    "    </div>");
-            FileWriter writerRef = writer;
-            chan.getIterableHistory().takeAsync(5000).thenApply(list -> {
-                Stream<Message> messages = list.stream();
-                for (Message msg : messages.toArray(Message[]::new)) {
-                    String author = msg.getAuthor().getAsTag();
-                    String message = msg.getContentDisplay();
-                    String authorImg = msg.getAuthor().getAvatarUrl();
-                    // Attachment support not embedded yet:
-                    // the previous implementation attempted to "complete" futures manually,
-                    // which could corrupt async file generation.
-                    String messageBlock = "<div class=\"message-block\">\n" +
-                            "        <div class=\"row\">\n" +
-                            "            <div class=\"col-auto\">\n" +
-                            "                <img src=\"" + authorImg + "\" alt=\"" + author + "\" class=\"img-fluid rounded-circle\" />\n" +
-                            "            </div>\n" +
-                            "            <div class=\"col-auto\">\n" +
-                            "                <span class=\"profilename\">" + author + "</span>\n" +
-                            "                <span class=\"timestamp\">" + msg.getTimeCreated().toLocalDateTime()
-                            .minusHours(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + "</span>\n" +
-                            "            </div>\n" +
-                            "        </div>";
-                    messageBlock += "<div class=\"row\">\n" +
-                            "            <div class=\"col-auto\">\n" +
-                            "                <img src=\"" + authorImg + "\" alt=\"" + author + "\" class=\"img-fluid rounded-circle\" style=\"visibility: hidden\" />\n" +
-                            "            </div>\n" +
-                            "            <div class=\"col-auto message-content\">\n" +
-                            "                <!-- Message Content -->\n" +
-                            message +
-                            "            </div>\n" +
-                            "        </div></div>";
-                    try {
-                        writerRef.write(messageBlock);
-                    } catch (IOException e) {
-                        Logger.log(e);
-                        e.printStackTrace();
-                    }
-                }
-                return true;
-            }).thenApply(bool -> {
-                if (bool) {
-                    // It completed, send to Discord
-                    try {
-                        writerRef.write("</div></body></html>");
-                    } catch (IOException e) {
-                        Logger.log(e);
-                        e.printStackTrace();
-                    }
-                    String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
-                    if (logChannelId != null && !logChannelId.isEmpty()) {
-                        TextChannel LOG_CHANNEL = Main.getInstance().getJDA().getTextChannelById(logChannelId);
-                        if (LOG_CHANNEL != null && logFile.exists()) {
-                            LOG_CHANNEL.sendMessage("A ticket has been logged. **TITLE:** `" + chan.getName() + "`")
-                                    .addFiles(FileUpload.fromData(logFile)).queue((msg) -> {
-                                        logFile.delete();
-                                    }, (error) -> {
-                                        Logger.log(error);
-                                        System.err.println("Failed to send ticket log to Discord: " + error.getMessage());
-                                        error.printStackTrace();
-                                    });
-                        } else {
-                            System.err.println("Log channel not found or log file doesn't exist. Channel ID: " + logChannelId);
-                        }
-                    } else {
-                        System.err.println("Bot.Tickets.Log_Channel not configured in config.yml");
-                    }
-                    result.accept(true);
-                    return true;
-                }
-                result.accept(false);
-                return false;
-            });
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            result.accept(false);
-        } finally {
+        File logFile = new File(ticketSaveDir, chan.getId() + "-log.html");
+        String channelName = chan.getName();
+        long channelId = chan.getIdLong();
+        ZoneId zone = ZoneId.of("America/New_York");
+        DateTimeFormatter stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        chan.getIterableHistory().takeAsync(5000).thenAccept(list -> {
             try {
-                if (writer != null) writer.close();
-            } catch (Exception ignored) {
+                List<Message> messages = new ArrayList<>(list);
+                Collections.reverse(messages); // history comes back newest-first
+
+                StringBuilder html = new StringBuilder();
+                html.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n")
+                        .append("<title>#").append(channelId).append(' ').append(escapeHtml(channelName)).append("</title>\n")
+                        .append("<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css\" ")
+                        .append("integrity=\"sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z\" crossorigin=\"anonymous\">\n")
+                        .append("<style>\n").append(TICKET_LOG_STYLE).append("</style>\n</head>\n<body>\n")
+                        .append("<div class=\"container-fluid\">\n<div class=\"row sticky-top\" id=\"header\">\n<div class=\"col-lg-12\">\n")
+                        .append("<span id=\"hashtag\">#</span><span id=\"channelName\">").append(escapeHtml(channelName)).append("</span>\n")
+                        .append("</div>\n</div>\n");
+
+                for (Message msg : messages) {
+                    String author = escapeHtml(msg.getAuthor().getName());
+                    String authorImg = escapeHtml(msg.getAuthor().getEffectiveAvatarUrl());
+                    String time = msg.getTimeCreated().atZoneSameInstant(zone).format(stamp);
+                    String content = escapeHtml(msg.getContentDisplay()).replace("\n", "<br>\n");
+                    html.append("<div class=\"message-block\">\n<div class=\"row\">\n<div class=\"col-auto\">")
+                            .append("<img src=\"").append(authorImg).append("\" alt=\"").append(author).append("\" class=\"img-fluid rounded-circle\" /></div>\n")
+                            .append("<div class=\"col-auto\"><span class=\"profilename\">").append(author).append("</span>")
+                            .append("<span class=\"timestamp\">").append(time).append("</span></div>\n</div>\n")
+                            .append("<div class=\"row\"><div class=\"col-auto\">")
+                            .append("<img src=\"").append(authorImg).append("\" class=\"img-fluid rounded-circle\" style=\"visibility: hidden\" alt=\"\" /></div>\n")
+                            .append("<div class=\"col-auto message-content\">").append(content);
+                    for (Message.Attachment attachment : msg.getAttachments()) {
+                        html.append("<br><a href=\"").append(escapeHtml(attachment.getUrl())).append("\">")
+                                .append(escapeHtml(attachment.getFileName())).append("</a>");
+                    }
+                    html.append("</div>\n</div>\n</div>\n");
+                }
+                html.append("</div>\n</body>\n</html>\n");
+
+                try (Writer writer = new OutputStreamWriter(new FileOutputStream(logFile), StandardCharsets.UTF_8)) {
+                    writer.write(html.toString());
+                }
+
+                String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
+                if (logChannelId == null || logChannelId.isEmpty()) {
+                    Logger.log(new IllegalStateException("Bot.Tickets.Log_Channel is not configured; transcript kept at " + logFile.getPath()));
+                    result.accept(true);
+                    return;
+                }
+                TextChannel logChannel = Main.getInstance().getJDA().getTextChannelById(logChannelId);
+                if (logChannel == null) {
+                    Logger.log(new IllegalStateException("Ticket log channel " + logChannelId + " not found; transcript kept at " + logFile.getPath()));
+                    result.accept(true);
+                    return;
+                }
+                String closedBy = closer != null ? closer.getEffectiveName() : "unknown";
+                String reason = (closeReason == null || closeReason.isEmpty()) ? "N/A" : closeReason;
+                if (reason.length() > 900) reason = reason.substring(0, 900) + "...";
+                logChannel.sendMessage("A ticket has been logged. **TITLE:** `" + channelName + "` -- closed by `" + closedBy
+                                + "` -- reason: " + reason)
+                        .setAllowedMentions(Collections.emptyList())
+                        .addFiles(FileUpload.fromData(logFile))
+                        .queue(sent -> logFile.delete(), error -> Logger.log(error));
+                result.accept(true);
+            } catch (Exception ex) {
+                Logger.log(ex);
+                result.accept(false);
             }
-        }
+        }).exceptionally(ex -> {
+            Logger.log(ex);
+            result.accept(false);
+            return null;
+        });
     }
 }
