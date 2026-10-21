@@ -2,10 +2,6 @@ package com.jaredscarito.listeners.api;
 
 import java.awt.Color;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,7 +25,6 @@ import com.timvisee.yamlwrapper.ConfigurationSection;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -485,27 +480,6 @@ public class API {
         evt.replyEmbeds(eb.build()).addActionRow(confirmBtn, denyBtn).setEphemeral(true).queue();
     }
 
-    private static String escapeHtml(String text) {
-        if (text == null) return "";
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                .replace("\"", "&quot;").replace("'", "&#39;");
-    }
-
-    private static final String TICKET_LOG_STYLE = """
-            body { background-color: #36393F; }
-            .container-fluid { background-color: #36393F; color: white; }
-            #header { background-color: #303339; }
-            #hashtag { color: #6d7279; font-weight: bold; font-size: 32px; vertical-align: middle; margin-right: 30px; }
-            span#channelName { font-weight: bold; font-size: 22px; vertical-align: middle; }
-            .rounded-circle { width: 50px; height: 50px; }
-            .profilename { margin-left: 15px; margin-right: 15px; vertical-align: top; }
-            .message-content { margin-left: 15px; }
-            .message-block:hover { background-color: #2e3239; }
-            .timestamp { color: #707070; font-size: 13px; vertical-align: top; }
-            .message-block { padding: 20px; }
-            a { color: #00b0f4; }
-            """;
-
     /**
      * Saves a transcript of the channel to ticket_logs/ and uploads it to the configured log channel.
      * The history is fetched asynchronously, so the file is only written once every message has arrived.
@@ -516,78 +490,34 @@ public class API {
         if (!ticketSaveDir.exists()) ticketSaveDir.mkdirs();
         File logFile = new File(ticketSaveDir, chan.getId() + "-log.html");
         String channelName = chan.getName();
-        long channelId = chan.getIdLong();
-        ZoneId zone = ZoneId.of("America/New_York");
-        DateTimeFormatter stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-        chan.getIterableHistory().takeAsync(5000).thenAccept(list -> {
-            try {
-                List<Message> messages = new ArrayList<>(list);
-                Collections.reverse(messages); // history comes back newest-first
-
-                StringBuilder html = new StringBuilder();
-                html.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n")
-                        .append("<title>#").append(channelId).append(' ').append(escapeHtml(channelName)).append("</title>\n")
-                        .append("<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css\" ")
-                        .append("integrity=\"sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z\" crossorigin=\"anonymous\">\n")
-                        .append("<style>\n").append(TICKET_LOG_STYLE).append("</style>\n</head>\n<body>\n")
-                        .append("<div class=\"container-fluid\">\n<div class=\"row sticky-top\" id=\"header\">\n<div class=\"col-lg-12\">\n")
-                        .append("<span id=\"hashtag\">#</span><span id=\"channelName\">").append(escapeHtml(channelName)).append("</span>\n")
-                        .append("</div>\n</div>\n");
-
-                for (Message msg : messages) {
-                    String author = escapeHtml(msg.getAuthor().getName());
-                    String authorImg = escapeHtml(msg.getAuthor().getEffectiveAvatarUrl());
-                    String time = msg.getTimeCreated().atZoneSameInstant(zone).format(stamp);
-                    String content = escapeHtml(msg.getContentDisplay()).replace("\n", "<br>\n");
-                    html.append("<div class=\"message-block\">\n<div class=\"row\">\n<div class=\"col-auto\">")
-                            .append("<img src=\"").append(authorImg).append("\" alt=\"").append(author).append("\" class=\"img-fluid rounded-circle\" /></div>\n")
-                            .append("<div class=\"col-auto\"><span class=\"profilename\">").append(author).append("</span>")
-                            .append("<span class=\"timestamp\">").append(time).append("</span></div>\n</div>\n")
-                            .append("<div class=\"row\"><div class=\"col-auto\">")
-                            .append("<img src=\"").append(authorImg).append("\" class=\"img-fluid rounded-circle\" style=\"visibility: hidden\" alt=\"\" /></div>\n")
-                            .append("<div class=\"col-auto message-content\">").append(content);
-                    for (Message.Attachment attachment : msg.getAttachments()) {
-                        html.append("<br><a href=\"").append(escapeHtml(attachment.getUrl())).append("\">")
-                                .append(escapeHtml(attachment.getFileName())).append("</a>");
-                    }
-                    html.append("</div>\n</div>\n</div>\n");
-                }
-                html.append("</div>\n</body>\n</html>\n");
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(logFile), StandardCharsets.UTF_8)) {
-                    writer.write(html.toString());
-                }
-
-                String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
-                if (logChannelId == null || logChannelId.isEmpty()) {
-                    Logger.log(new IllegalStateException("Bot.Tickets.Log_Channel is not configured; transcript kept at " + logFile.getPath()));
-                    result.accept(true);
-                    return;
-                }
-                TextChannel logChannel = Main.getInstance().getJDA().getTextChannelById(logChannelId);
-                if (logChannel == null) {
-                    Logger.log(new IllegalStateException("Ticket log channel " + logChannelId + " not found; transcript kept at " + logFile.getPath()));
-                    result.accept(true);
-                    return;
-                }
-                String closedBy = closer != null ? closer.getEffectiveName() : "unknown";
-                String reason = (closeReason == null || closeReason.isEmpty()) ? "N/A" : closeReason;
-                if (reason.length() > 900) reason = reason.substring(0, 900) + "...";
-                logChannel.sendMessage("A ticket has been logged. **TITLE:** `" + channelName + "` -- closed by `" + closedBy
-                                + "` -- reason: " + reason)
-                        .setAllowedMentions(Collections.emptyList())
-                        .addFiles(FileUpload.fromData(logFile))
-                        .queue(sent -> logFile.delete(), error -> Logger.log(error));
-                result.accept(true);
-            } catch (Exception ex) {
-                Logger.log(ex);
+        TicketTranscript.render(chan, closer, closeReason, logFile).whenComplete((ok, error) -> {
+            if (error != null || !Boolean.TRUE.equals(ok)) {
+                if (error != null) Logger.log(error);
                 result.accept(false);
+                return;
             }
-        }).exceptionally(ex -> {
-            Logger.log(ex);
-            result.accept(false);
-            return null;
+            String logChannelId = Main.getInstance().getConfig().getString("Bot.Tickets.Log_Channel");
+            if (logChannelId == null || logChannelId.isEmpty()) {
+                Logger.log(new IllegalStateException("Bot.Tickets.Log_Channel is not configured; transcript kept at " + logFile.getPath()));
+                result.accept(true);
+                return;
+            }
+            TextChannel logChannel = Main.getInstance().getJDA().getTextChannelById(logChannelId);
+            if (logChannel == null) {
+                Logger.log(new IllegalStateException("Ticket log channel " + logChannelId + " not found; transcript kept at " + logFile.getPath()));
+                result.accept(true);
+                return;
+            }
+            String closedBy = closer != null ? closer.getEffectiveName() : "unknown";
+            String reason = (closeReason == null || closeReason.isEmpty()) ? "N/A" : closeReason;
+            if (reason.length() > 900) reason = reason.substring(0, 900) + "...";
+            logChannel.sendMessage("A ticket has been logged. **TITLE:** `" + channelName + "` -- closed by `" + closedBy
+                            + "` -- reason: " + reason)
+                    .setAllowedMentions(Collections.emptyList())
+                    .addFiles(FileUpload.fromData(logFile))
+                    .queue(sent -> logFile.delete(), error2 -> Logger.log(error2));
+            result.accept(true);
         });
     }
 }
