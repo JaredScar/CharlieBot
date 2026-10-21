@@ -32,6 +32,14 @@ import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
 public class Main {
+    static {
+        // Java on Windows uses IPv6 name lookup first. On a dedicated server whose IPv6 DNS
+        // does not work, that fails the whole lookup: "No such host is known (discord.com)".
+        // Forcing IPv4 has to happen before the first socket, which is this class loading.
+        System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("java.net.preferIPv4Addresses", "true");
+    }
+
     private static JDA JDA_INSTANCE = null;
     private static final Main main = new Main();
     private static TicketManager ticketManager = null;
@@ -68,6 +76,15 @@ public class Main {
         return ticketManager;
     }
     private static SQLHelper sqlHelperInstance = null;
+
+    private static boolean isUnknownHost(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof java.net.UnknownHostException) return true;
+            current = current.getCause();
+        }
+        return false;
+    }
 
     private static void appendStartupLog(String line) {
         try {
@@ -152,11 +169,24 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         boolean configOk = main.validateConfigAndDb();
         String token = main.getConfig().getString("Bot.Token");
-        JDA jdaInstance = JDABuilder.createDefault(token).enableIntents(
-                GatewayIntent.MESSAGE_CONTENT,
-                GatewayIntent.GUILD_MESSAGES,
-                GatewayIntent.GUILD_MEMBERS
-        ).setMemberCachePolicy(MemberCachePolicy.ALL).setChunkingFilter(ChunkingFilter.ALL).build();
+        JDA jdaInstance;
+        try {
+            jdaInstance = JDABuilder.createDefault(token).enableIntents(
+                    GatewayIntent.MESSAGE_CONTENT,
+                    GatewayIntent.GUILD_MESSAGES,
+                    GatewayIntent.GUILD_MEMBERS
+            ).setMemberCachePolicy(MemberCachePolicy.ALL).setChunkingFilter(ChunkingFilter.ALL).build();
+        } catch (RuntimeException ex) {
+            if (isUnknownHost(ex)) {
+                String message = "Cannot reach discord.com. This server's DNS lookup failed "
+                        + "(No such host is known). Check the connection with: nslookup discord.com";
+                System.err.println(message);
+                appendStartupLog("[startup] " + message);
+                Logger.log(ex);
+                System.exit(1);
+            }
+            throw ex;
+        }
         jdaInstance.awaitReady();
         if (!configOk) {
             appendStartupLog("[startup] WARNING: required config keys are missing; bot may not function correctly.");
