@@ -35,6 +35,7 @@ public class HelpCommand {
         modCommands.append("`/kick add [user]` - Kick a user\n");
         modCommands.append("`/ban add [user]` - Ban a user\n");
         modCommands.append("`/ban remove [user]` - Unban a user\n");
+        modCommands.append("`/tempban [user] [duration]` - Ban a user until the duration ends\n");
         modCommands.append("`/mute add [user]` - Mute a user\n");
         modCommands.append("`/mute remove [user]` - Unmute a user\n");
         modCommands.append("`/blacklist add [user]` - Blacklist a user\n");
@@ -57,6 +58,7 @@ public class HelpCommand {
     
     private static void addUtilityCommands(EmbedBuilder eb) {
         StringBuilder utilCommands = new StringBuilder();
+        utilCommands.append("`/record` - View your own punishment record\n");
         utilCommands.append("`/rules` - View server rules\n");
         utilCommands.append("`/rules add [section] [rule]` - Add a new rule\n");
         utilCommands.append("`/rules edit [rule_id] [new_rule]` - Edit an existing rule\n");

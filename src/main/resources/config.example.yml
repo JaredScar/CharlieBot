@@ -118,6 +118,20 @@ Bot:
                             Type: USER
                             Description: The member to remove the ban from
                             Required: true
+        Tempban:
+            Enabled: true
+            Description: Temporarily ban a member
+            Requires_Roles:
+            - '932655785299824670'
+            Options:
+                member:
+                    Type: USER
+                    Description: The member to ban
+                    Required: true
+                duration:
+                    Type: STRING
+                    Description: How long (30m, 2h, 7d, 1w)
+                    Required: true
         Lockdown:
             Enabled: true
             Description: Enable or disable the lockdown of the community
@@ -262,6 +276,10 @@ Bot:
                             Type: USER
                             Description: User to clear history for
                             Required: true
+        Record:
+            Enabled: true
+            Description: View your own punishment record
+            Requires_Roles: []
         Help:
             Enabled: true
             Description: Get help with CharlieBot commands

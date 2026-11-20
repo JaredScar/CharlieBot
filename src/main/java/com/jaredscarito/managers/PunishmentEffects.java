@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
  * The real-world effects behind the punishment history:
  * <ul>
  *   <li>timed mutes (tracked in the {@code mutes} table and lifted automatically when they run out),</li>
+ *   <li>temporary bans (tracked in the {@code bans} table and lifted the same way),</li>
  *   <li>the roles a blacklist takes away (kept in {@code blacklists}/{@code roles} so they can be given back),</li>
  *   <li>undoing a punishment (unban / unmute / restore roles) when it is removed from a member's history.</li>
  * </ul>
@@ -63,6 +64,9 @@ public class PunishmentEffects {
             stmt.execute("CREATE TABLE IF NOT EXISTS `mutes` (" +
                     "`discord_id` BIGINT PRIMARY KEY, " +
                     "`expires_at` BIGINT DEFAULT NULL)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS `bans` (" +
+                    "`discord_id` BIGINT PRIMARY KEY, " +
+                    "`expires_at` BIGINT NOT NULL)");
         } catch (SQLException e) {
             Logger.log(e);
         }
@@ -143,18 +147,21 @@ public class PunishmentEffects {
     }
 
     /**
-     * Starts the background check that lifts expired mutes. It runs once shortly after startup, which also
-     * catches up on mutes that ran out while the bot was offline.
+     * Starts the background check that lifts expired mutes and temporary bans. It runs once shortly after
+     * startup, which also catches up on punishments that ran out while the bot was offline.
      */
     public static synchronized void startMuteScheduler() {
         if (scheduler != null) return;
         ensureSchema();
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "CharlieBot-mute-expiry");
+            Thread t = new Thread(r, "CharlieBot-punishment-expiry");
             t.setDaemon(true);
             return t;
         });
-        scheduler.scheduleWithFixedDelay(PunishmentEffects::checkExpiredMutes, 5, 30, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(() -> {
+            checkExpiredMutes();
+            checkExpiredBans();
+        }, 5, 30, TimeUnit.SECONDS);
     }
 
     private static void checkExpiredMutes() {
@@ -190,6 +197,106 @@ public class PunishmentEffects {
                     clearMute(id);
                     Logger.log(ActionType.MUTE_DELETE, guild.getSelfMember(), member, "Mute expired");
                 }, Logger::log);
+            }
+        } catch (Throwable t) {
+            Logger.log(t);
+        }
+    }
+
+    /** Remember a temporary ban. A later permanent ban should call {@link #clearBan(long)} so this does not unban them. */
+    public static void trackBan(long discordId, long durationMillis) {
+        Connection conn = conn();
+        if (conn == null) return;
+        long expiresAt = System.currentTimeMillis() + durationMillis;
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO `bans` (`discord_id`, `expires_at`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `expires_at` = ?")) {
+            stmt.setLong(1, discordId);
+            stmt.setLong(2, expiresAt);
+            stmt.setLong(3, expiresAt);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
+    }
+
+    /** Deletes one specific timer. Returns false when a newer ban already replaced it. */
+    private static boolean claimBan(long discordId, long expiresAt) {
+        Connection conn = conn();
+        if (conn == null) return false;
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "DELETE FROM `bans` WHERE `discord_id` = ? AND `expires_at` = ?")) {
+            stmt.setLong(1, discordId);
+            stmt.setLong(2, expiresAt);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.log(e);
+            return false;
+        }
+    }
+
+    private static void restoreBan(long discordId, long expiresAt) {
+        Connection conn = conn();
+        if (conn == null) return;
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "INSERT IGNORE INTO `bans` (`discord_id`, `expires_at`) VALUES (?, ?)")) {
+            stmt.setLong(1, discordId);
+            stmt.setLong(2, expiresAt);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
+    }
+
+    public static void clearBan(long discordId) {
+        Connection conn = conn();
+        if (conn == null) return;
+        try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM `bans` WHERE `discord_id` = ?")) {
+            stmt.setLong(1, discordId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.log(e);
+        }
+    }
+
+    private static void checkExpiredBans() {
+        try {
+            Connection conn = conn();
+            if (conn == null) return;
+            List<long[]> due = new ArrayList<>();
+            long now = System.currentTimeMillis();
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "SELECT `discord_id`, `expires_at` FROM `bans` WHERE `expires_at` <= ?")) {
+                stmt.setLong(1, now);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) due.add(new long[] { rs.getLong("discord_id"), rs.getLong("expires_at") });
+                }
+            }
+            if (due.isEmpty()) return;
+
+            JDA jda = Main.getInstance().getJDA();
+            String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
+            if (jda == null || guildId == null || guildId.trim().isEmpty()) return;
+            Guild guild = jda.getGuildById(guildId);
+            if (guild == null) return;
+            Member self = guild.getSelfMember();
+
+            for (long[] row : due) {
+                long id = row[0];
+                long expiresAt = row[1];
+                // Claim this exact expiry so a newer ban (or a removal) is not lifted by a stale timer.
+                if (!claimBan(id, expiresAt)) continue;
+                guild.unban(UserSnowflake.fromId(id)).queue((v) -> {
+                    if (self == null) return;
+                    jda.retrieveUserById(id).queue(
+                            (user) -> Logger.log(ActionType.BAN_REMOVE, self, user, "Temporary ban expired"),
+                            (error) -> {});
+                }, (error) -> {
+                    if (error instanceof ErrorResponseException e && e.getErrorResponse() == ErrorResponse.UNKNOWN_BAN) {
+                        return; // already unbanned
+                    }
+                    Logger.log(error);
+                    restoreBan(id, expiresAt); // try again next pass
+                });
             }
         } catch (Throwable t) {
             Logger.log(t);
@@ -280,7 +387,9 @@ public class PunishmentEffects {
      */
     public static void undo(Guild guild, long discordId, PunishmentType type, Consumer<String> done) {
         switch (type) {
-            case BAN -> guild.unban(UserSnowflake.fromId(discordId)).queue(
+            case BAN -> {
+                clearBan(discordId);
+                guild.unban(UserSnowflake.fromId(discordId)).queue(
                     (v) -> done.accept("\n🔓 The member has been unbanned."),
                     (error) -> {
                         if (error instanceof ErrorResponseException e && e.getErrorResponse() == ErrorResponse.UNKNOWN_BAN) {
@@ -290,6 +399,7 @@ public class PunishmentEffects {
                             done.accept("\n⚠️ Could not unban the member: " + error.getMessage());
                         }
                     });
+            }
             case MUTE -> {
                 clearMute(discordId);
                 Member member = guild.getMemberById(discordId);

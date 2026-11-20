@@ -92,6 +92,13 @@ CREATE TABLE IF NOT EXISTS `mutes` (
     `expires_at` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Active temporary bans. expires_at is a Unix timestamp in milliseconds.
+-- (The bot also creates this table itself on startup if it is missing.)
+CREATE TABLE IF NOT EXISTS `bans` (
+    `discord_id` BIGINT PRIMARY KEY,
+    `expires_at` BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `lockdown_roles` (
     `channel_id` BIGINT(128),
     `role_id` BIGINT(128),

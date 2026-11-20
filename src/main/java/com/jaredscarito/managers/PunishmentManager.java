@@ -55,7 +55,9 @@ public class PunishmentManager extends ListenerAdapter {
             evt.editMessage("Cancelled.").setEmbeds(Collections.emptyList()).setComponents(Collections.emptyList()).queue();
         } else if (id.contains("RuleSelectDeny")) {
             // "<type>RuleSelectDeny|<memberId>|<punisherId>" -> drop the saved rule selection and close the prompt
-            ManagerUtils.getRulesSelected().remove(id.replace("RuleSelectDeny", ""));
+            String flowKey = id.replace("RuleSelectDeny", "");
+            ManagerUtils.getRulesSelected().remove(flowKey);
+            BanManager.forgetTempban(flowKey);
             evt.editMessage("Cancelled.").setEmbeds(Collections.emptyList()).setComponents(Collections.emptyList()).queue();
         }
     }

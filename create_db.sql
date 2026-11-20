@@ -58,6 +58,11 @@ CREATE TABLE `mutes` (
     `expires_at` BIGINT DEFAULT NULL
 );
 
+CREATE TABLE `bans` (
+    `discord_id` BIGINT PRIMARY KEY,
+    `expires_at` BIGINT NOT NULL
+);
+
 CREATE TABLE `lockdown_roles` (
     `channel_id` BIGINT(128),
     `role_id` BIGINT(128),

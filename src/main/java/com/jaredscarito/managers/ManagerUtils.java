@@ -543,34 +543,35 @@ public class ManagerUtils {
         evt.editSelectMenu(builder.build()).and(evt.getHook().editOriginalEmbeds((eb.build()))).queue();
     }
 
-    public static void handleCommandInteraction(SlashCommandInteractionEvent evt, String punishmentType, String punishName, Color color) {
+    /** @return true when the rule-selection prompt was shown */
+    public static boolean handleCommandInteraction(SlashCommandInteractionEvent evt, String punishmentType, String punishName, Color color) {
         Member mem = evt.getMember();
-        if (mem == null) return;
-        if (mem.getUser().isBot()) return;
+        if (mem == null) return false;
+        if (mem.getUser().isBot()) return false;
         OptionMapping opt = evt.getOption("member");
-        if (opt == null) return;
+        if (opt == null) return false;
         Member target = opt.getAsMember();
         if (target == null) {
             evt.reply("❌ That user is not a member of this server.").setEphemeral(true).queue();
-            return;
+            return false;
         }
         if (target.getIdLong() == mem.getIdLong()) {
             evt.reply("❌ You cannot do that to yourself.").setEphemeral(true).queue();
-            return;
+            return false;
         }
         if (target.getUser().isBot()) {
             evt.reply("❌ You cannot do that to a bot.").setEphemeral(true).queue();
-            return;
+            return false;
         }
         if (!mem.canInteract(target)) {
             evt.reply("❌ You cannot do that to a member whose highest role is equal to or above yours.").setEphemeral(true).queue();
-            return;
+            return false;
         }
         User user = target.getUser();
         TreeMap<String, String> ruleList = API.getInstance().getRules();
         if (ruleList.isEmpty()) {
             evt.reply("❌ No rules are configured yet. Add some with `/rules add` first.").setEphemeral(true).queue();
-            return;
+            return false;
         }
         // start every flow with a clean slate so an old, abandoned selection can't leak into this one
         rulesSelected.remove(punishmentType + "|" + user.getId() + "|" + mem.getUser().getId());
@@ -597,5 +598,6 @@ public class ManagerUtils {
             eb.setDescription("Only the first " + MAX_SELECT_OPTIONS + " rules can be selected.");
         }
         evt.replyEmbeds(eb.build()).addActionRow(ruleSelect).addActionRow(cancelButton, submitButton).setEphemeral(true).queue();
+        return true;
     }
 }
