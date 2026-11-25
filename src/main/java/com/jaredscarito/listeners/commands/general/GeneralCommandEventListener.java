@@ -11,14 +11,17 @@ import com.jaredscarito.listeners.commands.HistoryCommand;
 import com.jaredscarito.listeners.commands.KickCommand;
 import com.jaredscarito.listeners.commands.LockdownCommand;
 import com.jaredscarito.listeners.commands.MuteCommand;
+import com.jaredscarito.listeners.commands.NoteCommand;
 import com.jaredscarito.listeners.commands.PointsCommand;
 import com.jaredscarito.listeners.commands.PurgeCommand;
 import com.jaredscarito.listeners.commands.RecordCommand;
+import com.jaredscarito.listeners.commands.ReportCommand;
 import com.jaredscarito.listeners.commands.RuleCommand;
 import com.jaredscarito.listeners.commands.StickyCommand;
 import com.jaredscarito.listeners.commands.TempbanCommand;
 import com.jaredscarito.listeners.commands.TicketCommand;
 import com.jaredscarito.listeners.commands.WarnCommand;
+import com.jaredscarito.listeners.commands.WhoisCommand;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
 
@@ -65,6 +68,9 @@ public class GeneralCommandEventListener extends ListenerAdapter {
                 case "warn" -> WarnCommand.invoke(evt);
                 case "points" -> PointsCommand.invoke(evt);
                 case "history" -> HistoryCommand.invoke(evt);
+                case "whois" -> WhoisCommand.invoke(evt);
+                case "note" -> NoteCommand.invoke(evt);
+                case "report" -> ReportCommand.invoke(evt);
                 case "rules" -> RuleCommand.invoke(evt);
                 case "help" -> HelpCommand.invoke(evt);
                 default -> evt.reply("❌ Unknown command: " + commandName).setEphemeral(true).queue();

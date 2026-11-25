@@ -42,6 +42,10 @@ public enum ActionType {
     LOCKDOWN_START,
     LOCKDOWN_END,
     /**
+     * Roles given back when a member rejoins
+     */
+    ROLE_RESTORE,
+    /**
      * Message purge
      */
     PURGE,
@@ -49,5 +53,10 @@ public enum ActionType {
      * Warns
      */
     WARN_CREATE,
-    WARN_REMOVE
+    WARN_REMOVE,
+    /**
+     * Private staff notes
+     */
+    NOTE_CREATE,
+    NOTE_DELETE
 }

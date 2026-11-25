@@ -63,6 +63,22 @@ CREATE TABLE `bans` (
     `expires_at` BIGINT NOT NULL
 );
 
+CREATE TABLE `notes` (
+    `note_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `discord_id` BIGINT NOT NULL,
+    `note` VARCHAR(500) NOT NULL,
+    `author_id` BIGINT NOT NULL,
+    `author_name` VARCHAR(128) NOT NULL,
+    `datetime` DATETIME NOT NULL,
+    `deleted` BIT(1) NOT NULL DEFAULT 0
+);
+
+CREATE TABLE `member_roles` (
+    `discord_id` BIGINT NOT NULL,
+    `role_id` BIGINT NOT NULL,
+    PRIMARY KEY (`discord_id`, `role_id`)
+);
+
 CREATE TABLE `lockdown_roles` (
     `channel_id` BIGINT(128),
     `role_id` BIGINT(128),

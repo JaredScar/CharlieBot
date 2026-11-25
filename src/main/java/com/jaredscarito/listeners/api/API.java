@@ -356,6 +356,21 @@ public class API {
         }
         return 1;
     }
+    public int getRankExp(Member mem) {
+        if (Main.getInstance().getSqlHelper() == null) return 0;
+        Connection conn = Main.getInstance().getSqlHelper().getConn();
+        if (conn == null) return 0;
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT `exp` FROM `ranking` WHERE `discord_id` = ?")) {
+            stmt.setLong(1, mem.getIdLong());
+            try (ResultSet res = stmt.executeQuery()) {
+                if (!res.next()) return 0;
+                return res.getInt("exp");
+            }
+        } catch (SQLException ex) {
+            Logger.log(ex);
+        }
+        return 0;
+    }
     public boolean addSticky(TextChannel chan, String msg) {
         Connection conn = Main.getInstance().getSqlHelper().getConn();
         if (conn == null) return false;

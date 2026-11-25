@@ -99,6 +99,24 @@ CREATE TABLE IF NOT EXISTS `bans` (
     `expires_at` BIGINT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Private staff notes. Shown on /history and /whois, never on /record.
+CREATE TABLE IF NOT EXISTS `notes` (
+    `note_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `discord_id` BIGINT NOT NULL,
+    `note` VARCHAR(500) NOT NULL,
+    `author_id` BIGINT NOT NULL,
+    `author_name` VARCHAR(128) NOT NULL,
+    `datetime` DATETIME NOT NULL,
+    `deleted` BIT(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Roles to give back when a member rejoins. The bot also creates this table on startup.
+CREATE TABLE IF NOT EXISTS `member_roles` (
+    `discord_id` BIGINT NOT NULL,
+    `role_id` BIGINT NOT NULL,
+    PRIMARY KEY (`discord_id`, `role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `lockdown_roles` (
     `channel_id` BIGINT(128),
     `role_id` BIGINT(128),

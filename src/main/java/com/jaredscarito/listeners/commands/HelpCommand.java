@@ -45,6 +45,9 @@ public class HelpCommand {
         modCommands.append("`/purge [amount] [user]` - Delete recent messages in this channel\n");
         modCommands.append("`/history view [user]` - View user's punishment history\n");
         modCommands.append("`/history clear [user]` - Clear user's punishment history\n");
+        modCommands.append("`/whois [user]` - Look up a member\n");
+        modCommands.append("`/note add [user] [note]` - Add a private staff note\n");
+        modCommands.append("`/note remove [user]` - Remove a staff note\n");
         
         eb.addField("🛡️ Moderation Commands", modCommands.toString(), false);
     }
@@ -60,6 +63,8 @@ public class HelpCommand {
     private static void addUtilityCommands(EmbedBuilder eb) {
         StringBuilder utilCommands = new StringBuilder();
         utilCommands.append("`/record` - View your own punishment record\n");
+        utilCommands.append("`/report [user] [reason]` - Report a member to staff\n");
+        utilCommands.append("Right-click a message, then Report message\n");
         utilCommands.append("`/rules` - View server rules\n");
         utilCommands.append("`/rules add [section] [rule]` - Add a new rule\n");
         utilCommands.append("`/rules edit [rule_id] [new_rule]` - Edit an existing rule\n");

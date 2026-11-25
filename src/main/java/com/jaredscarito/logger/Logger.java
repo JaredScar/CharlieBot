@@ -1,5 +1,6 @@
 package com.jaredscarito.logger;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,9 +28,17 @@ public class Logger {
      * (logs/actions.txt and logs/error.txt) are written regardless of this setting.
      */
     private static TextChannel getLogChannel() {
+        return findLogChannel(true);
+    }
+
+    /**
+     * @param respectEnabled when true, Bot.Logger.Enabled: false hides the channel.
+     *        Reports ignore that switch, because a member is waiting on staff to see it.
+     */
+    private static TextChannel findLogChannel(boolean respectEnabled) {
         try {
             // a missing key keeps the old behaviour (logging on)
-            if (!Main.getInstance().getConfig().getBoolean("Bot.Logger.Enabled", true)) return null;
+            if (respectEnabled && !Main.getInstance().getConfig().getBoolean("Bot.Logger.Enabled", true)) return null;
             String logChannel = Main.getInstance().getConfig().getString("Bot.Logger.Channel");
             String guildId = Main.getInstance().getConfig().getString("Bot.Guild");
             if (logChannel == null || logChannel.trim().isEmpty() || guildId == null || guildId.trim().isEmpty()) return null;
@@ -372,5 +381,46 @@ public class Logger {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Writes a member report to the log file and the mod channel.
+     * The channel post is sent even when Bot.Logger.Enabled is false.
+     *
+     * @return true when a mod channel is configured
+     */
+    public static boolean logReport(Member reporter, User target, String details) {
+        File logsDir = new File("logs");
+        if (!logsDir.exists()) logsDir.mkdirs();
+        File actionLog = new File("logs/actions.txt");
+        try {
+            if (!actionLog.exists()) actionLog.createNewFile();
+            FileWriter writer = new FileWriter(actionLog, true);
+            writer.write("[" + getCurrentDatetimeString() + "] REPORT:\n");
+            writer.write("Reported by: " + reporter.getUser().getName() + "\n");
+            if (target != null) writer.write("Reported user: " + target.getName() + " (" + target.getId() + ")\n");
+            if (details != null && !details.isEmpty()) writer.write(details + "\n");
+            writer.write("----------------------\n");
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            log(e);
+        }
+        TextChannel logChan = findLogChannel(false);
+        if (logChan == null) return false;
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setColor(Color.RED);
+        eb.setTitle("Report");
+        eb.setAuthor(reporter.getEffectiveName(), reporter.getAvatarUrl());
+        eb.addField("Reported by", reporter.getAsMention(), true);
+        if (target != null) {
+            eb.setThumbnail(target.getAvatarUrl());
+            eb.addField("Reported user", target.getAsMention(), true);
+        }
+        if (details != null && !details.isEmpty()) {
+            eb.addField("Details", details.length() <= 1024 ? details : details.substring(0, 1021) + "...", false);
+        }
+        logChan.sendMessageEmbeds(eb.build()).queue(null, Logger::log);
+        return true;
     }
 }

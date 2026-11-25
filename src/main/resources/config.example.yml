@@ -294,6 +294,57 @@ Bot:
             Enabled: true
             Description: View your own punishment record
             Requires_Roles: []
+        Whois:
+            Enabled: true
+            Description: Look up a member's join date, rank, and history
+            Requires_Roles:
+            - '932655785404665949'
+            Options:
+                member:
+                    Type: USER
+                    Description: The member to look up
+                    Required: true
+        Note:
+            Enabled: true
+            Description: Add or remove a private staff note
+            Requires_Roles:
+            - '932655785404665949'
+            Sub-Commands:
+                add:
+                    Description: Add a private note about a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member this note is about
+                            Required: true
+                        note:
+                            Type: STRING
+                            Description: The note staff will see
+                            Required: true
+                remove:
+                    Description: Remove a private note from a member
+                    Options:
+                        member:
+                            Type: USER
+                            Description: The member whose note to remove
+                            Required: true
+        Report:
+            Enabled: true
+            Description: Report a member to the staff
+            Requires_Roles: []
+            Options:
+                member:
+                    Type: USER
+                    Description: The member to report
+                    Required: true
+                reason:
+                    Type: STRING
+                    Description: What staff should know
+                    Required: true
+                link:
+                    Type: STRING
+                    Description: Optional link to a message
+                    Required: false
         Help:
             Enabled: true
             Description: Get help with CharlieBot commands

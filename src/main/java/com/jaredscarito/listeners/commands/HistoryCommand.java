@@ -3,6 +3,7 @@ package com.jaredscarito.listeners.commands;
 import com.jaredscarito.listeners.api.API;
 import com.jaredscarito.logger.Logger;
 import com.jaredscarito.main.Main;
+import com.jaredscarito.managers.StaffNotes;
 import com.jaredscarito.models.PunishmentData;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -90,7 +91,8 @@ public class HistoryCommand {
             
             eb.setDescription(historyText.toString());
         }
-        
+        eb.addField("Staff notes", StaffNotes.formatRecent(target.getIdLong(), 5, 900), false);
+
         evt.replyEmbeds(eb.build()).setEphemeral(true).queue();
     }
     

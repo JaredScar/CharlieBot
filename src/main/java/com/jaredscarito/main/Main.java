@@ -13,8 +13,12 @@ import com.jaredscarito.managers.BanManager;
 import com.jaredscarito.managers.BlacklistManager;
 import com.jaredscarito.managers.KickManager;
 import com.jaredscarito.managers.LockdownManager;
+import com.jaredscarito.managers.MemberRoleManager;
 import com.jaredscarito.managers.MuteManager;
+import com.jaredscarito.managers.NoteManager;
 import com.jaredscarito.managers.PunishmentManager;
+import com.jaredscarito.managers.ReportManager;
+import com.jaredscarito.managers.StaffNotes;
 import com.jaredscarito.managers.StickyManager;
 import com.jaredscarito.managers.TicketManager;
 import com.jaredscarito.managers.WarnManager;
@@ -25,6 +29,7 @@ import com.timvisee.yamlwrapper.YamlConfiguration;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandCreateAction;
@@ -248,6 +253,9 @@ public class Main {
                 act.queue();
             }
         }
+        if (getInstance().getConfig().getBoolean("Bot.Commands.Report.Enabled")) {
+            jdaInstance.upsertCommand(Commands.message("Report message")).queue(null, Logger::log);
+        }
         JDA_INSTANCE = jdaInstance;
         ticketManager = new TicketManager();
         muteManager = new MuteManager();
@@ -267,8 +275,17 @@ public class Main {
                 blacklistManager,
                 stickyManager,
                 new WarnManager(),
-                new PunishmentManager()
+                new PunishmentManager(),
+                new NoteManager(),
+                new ReportManager(),
+                new MemberRoleManager()
         );
+        try {
+            StaffNotes.ensureSchema();
+            MemberRoleManager.ensureSchema();
+        } catch (Exception ex) {
+            Logger.log(ex);
+        }
         try {
             StickyManager.initializeStickyMessages();
         } catch (Exception ex) {
