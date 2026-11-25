@@ -42,6 +42,10 @@ public enum ActionType {
     LOCKDOWN_START,
     LOCKDOWN_END,
     /**
+     * Message purge
+     */
+    PURGE,
+    /**
      * Warns
      */
     WARN_CREATE,

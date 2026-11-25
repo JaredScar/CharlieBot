@@ -12,6 +12,7 @@ import com.jaredscarito.listeners.commands.KickCommand;
 import com.jaredscarito.listeners.commands.LockdownCommand;
 import com.jaredscarito.listeners.commands.MuteCommand;
 import com.jaredscarito.listeners.commands.PointsCommand;
+import com.jaredscarito.listeners.commands.PurgeCommand;
 import com.jaredscarito.listeners.commands.RecordCommand;
 import com.jaredscarito.listeners.commands.RuleCommand;
 import com.jaredscarito.listeners.commands.StickyCommand;
@@ -57,6 +58,7 @@ public class GeneralCommandEventListener extends ListenerAdapter {
                 case "tempban" -> TempbanCommand.invoke(evt);
                 case "record" -> RecordCommand.invoke(evt);
                 case "lockdown" -> LockdownCommand.invoke(evt);
+                case "purge" -> PurgeCommand.invoke(evt);
                 case "ticket" -> TicketCommand.invoke(evt);
                 case "gamble" -> GambleCommand.invoke(evt);
                 case "sticky" -> StickyCommand.invoke(evt);

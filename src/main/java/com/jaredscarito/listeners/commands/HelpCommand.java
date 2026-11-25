@@ -42,6 +42,7 @@ public class HelpCommand {
         modCommands.append("`/blacklist remove [user]` - Remove from blacklist\n");
         modCommands.append("`/lockdown enable` - Enable server lockdown\n");
         modCommands.append("`/lockdown disable` - Disable server lockdown\n");
+        modCommands.append("`/purge [amount] [user]` - Delete recent messages in this channel\n");
         modCommands.append("`/history view [user]` - View user's punishment history\n");
         modCommands.append("`/history clear [user]` - Clear user's punishment history\n");
         

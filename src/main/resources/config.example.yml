@@ -142,6 +142,20 @@ Bot:
                     Description: Enable lockdown for the current channel
                 disable:
                     Description: Disable lockdown for the current channel
+        Purge:
+            Enabled: true
+            Description: Delete recent messages in this channel
+            Requires_Roles:
+            - '932655785299824670'
+            Options:
+                amount:
+                    Type: INTEGER
+                    Description: How many messages to delete (1-100)
+                    Required: true
+                member:
+                    Type: USER
+                    Description: Only delete messages from this member
+                    Required: false
         Ticket:
             Enabled: true
             Description: Run commands that relate to ticket management
